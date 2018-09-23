@@ -1,7 +1,8 @@
 from urllib.request import urlopen
 from shutil import copyfileobj
 
-celebA_url = "https://web.pslib.cz/getFile/id:17651/%C5%A0ablona%20MP-RP%202017.dotx"
+celebA_url = "https://www.dropbox.com/sh/8oqt9vytwxb3s4r/AADIKlz8PR9zr6Y20qbkunrba/Img/img_align_celeba.zip?dl=1&pv=1"
+
 
 def celebA():
     with urlopen(celebA_url) as response, open("../datasets/celebA", "wb") as output:
