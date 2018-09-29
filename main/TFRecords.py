@@ -1,37 +1,21 @@
 import tensorflow as tf
-from matplotlib.image import imread
-import glob
-from skimage import io, color
-from tensorflow.python import keras as keras
 import os
-from PIL import Image
+from main.Tools import split_images, png2jpg, resize_img
 
 train_tfrecords_path = "../datasets/celebA_train.tfrecords"
 test_tfrecords_path = "../datasets/celebA_test.tfrecords"
 
-def split_images(images_path, train_size=0.9):
-    image_paths = glob.glob(images_path + "/*.*")
-    a = int(len(image_paths)*train_size)
-    train_x = image_paths[:a]
-    test_x = image_paths[a:len(image_paths)]
-    return train_x, test_x
 
-
-def png2jpeg():
-
-
-
-def write(image_paths, output_path):
+def write(image_paths, output_path, width=1920, height=1080):
     with tf.python_io.TFRecordWriter(output_path) as writer:
         for path in image_paths:
             with tf.gfile.FastGFile(path, 'rb') as fid:
-                img_bytes = fid.read()
-
-            # TODO: png -> jpeg, resize img, convert to lab
-            if os.path.splitext(path)[1].lower() == ".png":
-                im = Image.open(path)
+                bytes_img = fid.read()
+                if os.path.splitext(path)[1].lower() == ".png":
+                    bytes_img = png2jpg(path)
+            bytes_img = resize_img(bytes_img, width, height)
             data = {
-                    "image": tf.train.Feature(bytes_list=tf.train.BytesList(value=[img_bytes])),
+                    "image": tf.train.Feature(bytes_list=tf.train.BytesList(value=[bytes_img])),
                 }
             feature = tf.train.Features(feature=data)
             example = tf.train.Example(features=feature)
