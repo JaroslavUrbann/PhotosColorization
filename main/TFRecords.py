@@ -1,26 +1,29 @@
 import tensorflow as tf
-import os
-from main.Tools import split_images, png2jpg, resize_img
+import io
+from PIL import Image
+from main.Tools import split_images, png2jpg, resize_img, crop_img, flip_img
 
-train_tfrecords_path = "../datasets/celebA_train.tfrecords"
-test_tfrecords_path = "../datasets/celebA_test.tfrecords"
+train_tfrecords_path = "../datasets/celebA_train2.tfrecords"
+test_tfrecords_path = "../datasets/celebA_test2.tfrecords"
 
 
-def write(image_paths, output_path, width=1920, height=1080):
+def write(image_paths, output_path, width=960, height=540):
     with tf.python_io.TFRecordWriter(output_path) as writer:
         for path in image_paths:
-            with tf.gfile.FastGFile(path, 'rb') as fid:
-                bytes_img = fid.read()
-                if os.path.splitext(path)[1].lower() == ".png":
-                    bytes_img = png2jpg(path)
-            bytes_img = resize_img(bytes_img, width, height)
-            data = {
-                    "image": tf.train.Feature(bytes_list=tf.train.BytesList(value=[bytes_img])),
-                }
-            feature = tf.train.Features(feature=data)
-            example = tf.train.Example(features=feature)
-            serialized = example.SerializeToString()
-            writer.write(serialized)
+            img = Image.open(path)
+            img = png2jpg(img)
+            images = crop_img(img, width, height)
+            # TODO: _2lab, "image_target":, flip_image
+            for img in images:
+                bytes_img = io.BytesIO()
+                img.save(bytes_img, format="JPEG")
+                data = {
+                        "image": tf.train.Feature(bytes_list=tf.train.BytesList(value=[bytes_img.getvalue()])),
+                    }
+                feature = tf.train.Features(feature=data)
+                example = tf.train.Example(features=feature)
+                serialized = example.SerializeToString()
+                writer.write(serialized)
 
 
 def read(serialized):
@@ -28,13 +31,20 @@ def read(serialized):
         "image": tf.FixedLenFeature([], tf.string)
     }
     parsed_example = tf.parse_single_example(serialized=serialized, features=features)
-    return tf.cast(tf.decode_raw(parsed_example['image'], tf.uint8), tf.float32)
+    print(parsed_example)
+    raw_img = parsed_example['image']
+    print(raw_img)
+    decoded_img = tf.decode_raw(raw_img, tf.uint8)
+    print(decoded_img)
+    float_img = tf.cast(decoded_img, tf.float32)
+    print(float_img)
+    return float_img
 
 
-def input_fn(path, train=False, batch_size=16, buffer_size=1024):
+def pipeline(path, train=False, flip=False, batch_size=2, buffer_size=2):
     dataset = tf.data.TFRecordDataset(filenames=path)
     dataset = dataset.map(read)
-
+    print(dataset)
     if train:
         dataset = dataset.shuffle(buffer_size)
         repeat = None
@@ -45,10 +55,13 @@ def input_fn(path, train=False, batch_size=16, buffer_size=1024):
     dataset = dataset.batch(batch_size)
     iterator = dataset.make_one_shot_iterator()
     images = iterator.get_next()
+    print(images)
     x = {"image": images}
-    return x
+    # return x
 
 
 train_x_paths, test_x_paths = split_images("../datasets/celebA")
 print("writing")
 write(train_x_paths, test_tfrecords_path)
+print("reading")
+pipeline(test_tfrecords_path)
