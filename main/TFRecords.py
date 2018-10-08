@@ -1,3 +1,8 @@
+#   If you write anything else than jpeg coded files into TFRecords, it will reach enormous sizes. (38MB -> 1.2GB)
+#   Reading from TFRecords will always return tensors and even if it is possible to decode them into numpy arrays
+#   or image objects, and then flip them, convert them to Lab, split them and then convert them back to tensors,
+#   it just defeats the purpose of using TFRecords. Don't come back.
+
 import tensorflow as tf
 import io
 from PIL import Image
