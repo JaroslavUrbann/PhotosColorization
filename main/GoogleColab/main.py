@@ -212,9 +212,9 @@ def batch_images(index, batch_size, file_path, image_paths, psp_net):
         for image in range(start_position, end_position):
             with my_zip.open(image_paths[image]) as img:
                 img = Image.open(img)
-                cropped_img = crop_img(img, 300, 300)[0]
-                x2 = predict_segmentation(cropped_img, psp_net)
-                l, ab = lab_img(cropped_img)
+                # cropped_img = crop_img(img, 300, 300)[0]
+                x2 = predict_segmentation(img, psp_net)
+                l, ab = lab_img(img)
 
                 segmentation_x.append(x2)
                 x.append(l)
@@ -236,7 +236,6 @@ def predict_segmentation(img, psp_net):
     if image_size != input_size:
         img = img.resize(input_size)
 
-    # TODO: check if img has 3 layers
     pixel_img = np.array(img)
     pixel_img = pixel_img - data_mean
     bgr_img = pixel_img[:, :, ::-1]
@@ -248,8 +247,8 @@ def predict_segmentation(img, psp_net):
     segmented_image = np.argmax(prediction, axis=2)
     if image_size != input_size:
         segmented_image = ndimage.zoom(segmented_image,
-                                       (1. * image_size[0] / input_size[0],
-                                        1. * image_size[1] / input_size[1]),
+                                       (1. * image_size[1] / input_size[1],
+                                        1. * image_size[0] / input_size[0]),
                                        order=1, prefilter=False)
     segmented_image = (segmented_image - 74.5) / 74.5
     return segmented_image
@@ -259,7 +258,7 @@ def generator_fn(n_images, batch_size, file_path):
     with zipfile.ZipFile(file_path) as my_zip:
         image_paths = my_zip.infolist()
 
-    psp_net_path = "../PSPNet/weights/pspnet50_ade20k"
+    psp_net_path = "./pspnet50_ade20k"
     json_path = psp_net_path + ".json"
     h5_path = psp_net_path + ".h5"
     with open(json_path, 'r') as model_file:
@@ -278,9 +277,8 @@ def class_to_color(n):
     return n_labels[int(n)].color
 
 
-# TODO: colorize segmentation with labels
 def decode_images(images):
-    w, h = images[0][0].shape
+    h, w = images[0][0].shape
     l = images[0][0]
     semantic_segmentation = images[1][0]
     a = images[2][0][0]
