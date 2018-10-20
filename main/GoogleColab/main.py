@@ -316,8 +316,4 @@ def decode_images(images):
     misc.imsave("color_output.jpg", lab2rgb(color_output))
 
 
-# TODO: try it with multiple images
 decode_images(generator_fn(1, 1, 'b_probs.zip'))
-
-# model.fit_generator(generator_fn(1000, 32, 'b_probs.zip'),
-#         samples_per_epoch=10000, nb_epoch=10)
