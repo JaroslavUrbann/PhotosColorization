@@ -1,19 +1,10 @@
-import zipfile
-from PIL import Image
-from skimage.color import rgb2lab, lab2rgb
+from skimage.color import lab2rgb
 import matplotlib.pyplot as plt
-from keras.models import model_from_json
 import numpy as np
-from scipy import misc, ndimage
-import sys
+from scipy import misc
 from collections import namedtuple
 import copy
-from keras.models import Sequential, Model
-from keras.layers import Conv2D, UpSampling2D, InputLayer, Dense, concatenate, Input
-from keras.callbacks import ModelCheckpoint
-import tensorflow as tf
-tf.logging.set_verbosity(tf.logging.ERROR)
-
+import os
 
 Label = namedtuple('Label', [
     'name',
@@ -173,194 +164,58 @@ labels = [Label('wall', 0, (120, 120, 120), 0),
         Label('flag', 149, (92, 0, 255), 0)]
 
 
-def lab_img(img):
-    if img.format != ("JPEG" or "JPG"):
-        img = img.convert("RGB")
-    img = rgb2lab(img)
-    l = img[:, :, 0]
-    a = img[:, :, 1]
-    b = img[:, :, 2]
-    a = (np.array(a) + 127) / 255
-    b = (np.array(b) + 128) / 255
-    l = np.array(l) / 100
-    print(str(np.max(a)))
-    print(str(np.max(b)))
-    print(str(np.min(a)))
-    print(str(np.min(b)))
-    a = np.expand_dims(a, axis=2)
-    b = np.expand_dims(b, axis=2)
-    ab = np.concatenate((a, b), axis=2)
-    return l, ab
-
-
-def crop_img(img, crop_width, crop_height):
-    img_width, img_height = img.size
-    images = []
-    x, y = 0, 0
-    # TODO: center cropped image(s)
-    while img_height >= y + crop_height:
-        while img_width >= x + crop_width:
-            images.append(img.crop((x, y, x + crop_width, y + crop_height)))
-            x = x + crop_width
-        x = 0
-        y = y + crop_height
-    return images
-
-
-def flip_img(img):
-    flipped_img = img.transpose(Image.FLIP_LEFT_RIGHT)
-    return flipped_img
-
-
-def batch_images(index, batch_size, file_path, image_paths, trained_model):
-    with zipfile.ZipFile(file_path) as my_zip:
-        x = []
-        y = []
-        start_position = index * batch_size
-        end_position = min(len(image_paths), index * batch_size + batch_size)
-        for image in range(start_position, end_position):
-            with my_zip.open(image_paths[image]) as img:
-                img = Image.open(img)
-                # cropped_img = crop_img(img, 300, 300)[0]
-                x2 = predict_segmentation(img, trained_model)
-                l, ab = lab_img(img)
-
-                l = np.expand_dims(l, axis=2)
-                x2 = np.expand_dims(x2, axis=2)
-                x2_l = np.concatenate((l, x2), axis=2)
-                # x_4_dims = np.expand_dims(x2_l, axis=3)
-                x.append(x2_l)
-                y.append(ab)
-
-                # flipped_x2 = np.flipud(x2)
-                # flipped_x = np.flipud(l)
-                # x.append(np.concatenate((flipped_x, flipped_x2), axis=2))
-                # y.append(np.flipud(ab))
-
-        return x, y
-
-
-def predict_segmentation(img, trained_model):
-    # TODO: do this in my model
-    data_mean = np.array([[[123.68, 116.779, 103.939]]])
-    image_size = img.size
-    input_size = (473, 473)
-
-    if image_size != input_size:
-        img = img.resize(input_size)
-
-    pixel_img = np.array(img)
-    pixel_img = pixel_img - data_mean
-    bgr_img = pixel_img[:, :, ::-1]
-    prediction = trained_model.predict(np.expand_dims(bgr_img, 0))[0]
-
-    # controversial: de-hot encode psp_net output to make space for higher image resolution predicting
-    segmented_image = np.argmax(prediction, axis=2)
-    if image_size != input_size:
-        segmented_image = ndimage.zoom(segmented_image,
-                                       (1. * image_size[1] / input_size[1],
-                                        1. * image_size[0] / input_size[0]),
-                                       order=1, prefilter=False)
-    segmented_image = (segmented_image - 74.5) / 74.5
-    return segmented_image
-
-
 def class_to_color(n):
     global n_labels
     n_labels[int(n)] = n_labels[int(n)]._replace(count=n_labels[int(n)].count + 1)
     return n_labels[int(n)].color
 
 
-def decode_images(images):
-    h, w = images[0][0].shape
-    l = images[0][0]
-    semantic_segmentation = images[1][0]
-    a = images[2][0][0]
-    b = images[2][1][0]
+# Takes one instance of input and output (no batches)
+def decode_images(x, y, save_path):
+    h, w, d = x.shape
+    l, semantic_segmentation = np.split(x, [1], 2)
+    a, b = np.split(y, [1], 2)
 
-    semantic_segmentation = np.round(semantic_segmentation * 74.5 + 74.5)
-    misc.imsave("bnw_segmentation.jpg", semantic_segmentation)
+    l = l[:, :, 0] * 100
+    a = a[:, :, 0] * 255 - 127
+    b = b[:, :, 0] * 255 - 128
 
     global n_labels
     n_labels = copy.deepcopy(labels)
     colored_segmentation = np.zeros((h, w, 3))
+    semantic_segmentation_2d = np.argmax(semantic_segmentation, axis=2)
     for x in range(h):
         for y in range(w):
-            colored_segmentation[x, y] = class_to_color(semantic_segmentation[x, y])
-    misc.imsave("colored_segmentation.jpg", colored_segmentation)
+            colored_segmentation[x, y] = class_to_color(semantic_segmentation_2d[x, y])
+    misc.imsave(os.path.join(save_path, "colored_segmentation.jpg"), colored_segmentation)
 
     n_labels_sorted = sorted(n_labels, key=lambda x: x.count, reverse=True)
     x_axis = [x.name for x in n_labels_sorted[0:7]]
     y_axis = [x.count for x in n_labels_sorted[0:7]]
-    colors = ['#%02x%02x%02x' % x.color for x in n_labels_sorted[0:7]]
+    colors = ["#%02x%02x%02x" % x.color for x in n_labels_sorted[0:7]]
     pos = np.arange(len(x_axis))
     plt.bar(pos, y_axis, color=colors)
     plt.xticks(pos, x_axis)
-    plt.savefig('color_labels.jpeg')
-    plt.show()
+    plt.savefig(os.path.join(save_path, "color_labels.jpeg"))
 
-    bnw_input = np.zeros((w, h, 3))
+    bnw_input = np.zeros((h, w, 3))
     bnw_input[:, :, 0] = l
-    misc.imsave("bnw_input.jpg", lab2rgb(bnw_input))
+    misc.imsave(os.path.join(save_path, "bnw_input.jpg"), lab2rgb(bnw_input))
 
-    color_output = np.zeros((w, h, 3))
-    color_output[:, :, 0] = 80
+    color_output = np.zeros((h, w, 3))
+    color_output[:, :, 0] = l
     color_output[:, :, 1] = a
     color_output[:, :, 2] = b
-    misc.imsave("color_output.jpg", lab2rgb(color_output))
+    misc.imsave(os.path.join(save_path, "color_output.jpg"), lab2rgb(color_output))
 
 
-def load_trained_model(path):
-    json_path = path + ".json"
-    h5_path = path + ".h5"
-    with open(json_path, 'r') as model_file:
-        trained_model = model_from_json(model_file.read())
-    trained_model._make_predict_function()
-    trained_model.load_weights(h5_path)
-    return trained_model
-
-
-def model():
-    grayscale = Input(shape=(None, 2))
-    colorized = Dense(32, activation="relu")(grayscale)
-    colorized = Dense(16, activation="relu")(colorized)
-    colorized = Dense(8, activation="relu")(colorized)
-    colorized = Dense(4, activation="relu")(colorized)
-    colorized = Dense(2, activation="relu")(colorized)
-    model = Model(inputs=grayscale, outputs=colorized)
-    model.compile(loss="mse", optimizer="adam")
-    return model
-
-
-def callbacks(model_path):
-    cb = []
-    cb.append(ModelCheckpoint(model_path))
-    return cb
-
-
-def generator_fn(n_images, batch_size, file_path, trained_model):
-    with zipfile.ZipFile(file_path) as my_zip:
-        image_paths = my_zip.infolist()
-    batches_per_epoch = int(n_images / batch_size)
-    while True:
-        for i in range(batches_per_epoch):
-            x, y = batch_images(i, batch_size, file_path, image_paths, trained_model)
-            yield x, y
-
-
-model = model()
-psp_net = load_trained_model("pspnet50_ade20k")
-
-model.fit_generator(generator_fn(2, 1, "b_probs.zip", psp_net),
-                    epochs=2,
-                    steps_per_epoch=1,
-                    callbacks=callbacks("trained_model.hdf5"),
-                    validation_data=generator_fn(1, 1, "b_probs.zip", psp_net),
-                    validation_steps=1)
-
-for x, y in generator_fn(1, 1, "b_probs.zip", psp_net):
-    print(model.predict(x[0]))
-    sys.exit()
-# model.fit(generator_fn(1, 1, 'b_probs.zip'), batch_size=1, epochs=1)
-decode_images(generator_fn(1, 1, 'b_probs.zip'))
-# TODO: flipped, cnn vs dense
+def validate_images(predict, model, generator_fn, n_batches, save_path):
+    batches_done = 0
+    for x_batch, y_batch in generator_fn:
+        batches_done += 1
+        if batches_done > n_batches:
+            return
+        for x, y in zip(x_batch, y_batch):
+            if predict:
+                y = model.predict(x)
+            decode_images(x, y, save_path)
