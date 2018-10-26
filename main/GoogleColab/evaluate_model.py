@@ -171,51 +171,62 @@ def class_to_color(n):
 
 
 # Takes one instance of input and output (no batches)
-def decode_images(x, y, save_path):
-    h, w, d = x.shape
-    l, semantic_segmentation = np.split(x, [1], 2)
+def decode_images(l, s, y, save_path):
+    h, w, d = l.shape
     a, b = np.split(y, [1], 2)
 
     l = l[:, :, 0] * 100
     a = a[:, :, 0] * 255 - 127
     b = b[:, :, 0] * 255 - 128
 
+    i = 0
+    while os.path.isfile(os.path.join(save_path, str(i) + "_segmentation.jpg")):
+        i += 1
+
     global n_labels
     n_labels = copy.deepcopy(labels)
     colored_segmentation = np.zeros((h, w, 3))
-    semantic_segmentation_2d = np.argmax(semantic_segmentation, axis=2)
+    semantic_segmentation_2d = np.argmax(s, axis=2)
     for x in range(h):
         for y in range(w):
             colored_segmentation[x, y] = class_to_color(semantic_segmentation_2d[x, y])
-    misc.imsave(os.path.join(save_path, "colored_segmentation.jpg"), colored_segmentation)
+    misc.imsave(os.path.join(save_path, str(i) + "_segmentation.jpg"), colored_segmentation)
 
-    n_labels_sorted = sorted(n_labels, key=lambda x: x.count, reverse=True)
+    n_labels_sorted = sorted(n_labels, key=lambda a: a.count, reverse=True)
     x_axis = [x.name for x in n_labels_sorted[0:7]]
     y_axis = [x.count for x in n_labels_sorted[0:7]]
     colors = ["#%02x%02x%02x" % x.color for x in n_labels_sorted[0:7]]
     pos = np.arange(len(x_axis))
     plt.bar(pos, y_axis, color=colors)
     plt.xticks(pos, x_axis)
-    plt.savefig(os.path.join(save_path, "color_labels.jpeg"))
+    plt.savefig(os.path.join(save_path, str(i) + "_segmentation_labels.jpeg"))
 
     bnw_input = np.zeros((h, w, 3))
     bnw_input[:, :, 0] = l
-    misc.imsave(os.path.join(save_path, "bnw_input.jpg"), lab2rgb(bnw_input))
+    misc.imsave(os.path.join(save_path, str(i) + "_input.jpg"), lab2rgb(bnw_input))
 
     color_output = np.zeros((h, w, 3))
     color_output[:, :, 0] = l
     color_output[:, :, 1] = a
     color_output[:, :, 2] = b
-    misc.imsave(os.path.join(save_path, "color_output.jpg"), lab2rgb(color_output))
+    misc.imsave(os.path.join(save_path, str(i) + "_output.jpg"), lab2rgb(color_output))
 
 
 def validate_images(predict, model, generator_fn, n_batches, save_path):
     batches_done = 0
-    for x_batch, y_batch in generator_fn:
+    flipped = False
+    for x_s_batch, y_batch in generator_fn:
         batches_done += 1
         if batches_done > n_batches:
             return
-        for x, y in zip(x_batch, y_batch):
-            if predict:
-                y = model.predict(x)
-            decode_images(x, y, save_path)
+        x_batch = x_s_batch[0]
+        s_batch = x_s_batch[1]
+        for i in range(x_batch.shape[0]):
+            if flipped:
+                x = x_batch[i]
+                s = s_batch[i]
+                y = y_batch[i]
+                if predict:
+                    y = model.predict([x, s])
+                decode_images(x, s, y, save_path)
+            flipped = not flipped
