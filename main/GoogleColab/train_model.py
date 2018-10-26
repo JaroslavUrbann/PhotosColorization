@@ -1,6 +1,6 @@
 from keras.models import model_from_json
 from keras.models import Model
-from keras.layers import Conv2D, UpSampling2D, InputLayer, Dense, concatenate, Input
+from keras.layers import Conv2D, concatenate, Input
 from keras.callbacks import ModelCheckpoint
 import tensorflow as tf
 import os
@@ -20,9 +20,16 @@ def load_trained_model(path):
 
 # Returns main model
 def model_definition():
-    grayscale = Input(shape=(None, 151))
-    colorized = Dense(2, activation="relu")(grayscale)
-    model = Model(inputs=grayscale, outputs=colorized)
+    grayscale_input = Input(shape=(None, None, 1))
+    grayscale = Conv2D(1, (3, 3), padding="same", activation="relu", use_bias=True)(grayscale_input)
+
+    segmentation_input = Input(shape=(None, None, 150))
+    segmentation = Conv2D(1, (3, 3), padding="same", activation="relu", use_bias=True)(segmentation_input)
+
+    merged = concatenate([grayscale, segmentation], axis=3)
+    colorized = Conv2D(2, (3, 3), padding="same", activation="relu", use_bias=True)(merged)
+
+    model = Model(inputs=[grayscale_input, segmentation_input], outputs=colorized)
     model.compile(loss="mse", optimizer="adam")
     return model
 
