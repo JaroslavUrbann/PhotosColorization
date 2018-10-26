@@ -43,36 +43,36 @@ def crop_img(img, crop_width, crop_height):
     return images
 
 
-def flip_img(img):
-    flipped_img = img.transpose(Image.FLIP_LEFT_RIGHT)
-    return flipped_img
-
-
 # Returns batch of x and y values packed together
 def batch_images(index, batch_size, images_path, image_paths, trained_model):
     with zipfile.ZipFile(images_path) as my_zip:
         x_batch = []
+        s_batch = []
         y_batch = []
         start_position = index * batch_size
         end_position = min(len(image_paths), index * batch_size + batch_size)
         for image in range(start_position, end_position):
             with my_zip.open(image_paths[image]) as img:
                 img = Image.open(img)
-                segmentation = predict_segmentation(img, trained_model)
+
+                s = predict_segmentation(img, trained_model)
                 l, a, b = lab_img(img)
 
-                x = np.concatenate((l, segmentation), axis=2)
                 y = np.concatenate((a, b), axis=2)
 
-                x_batch.append(x)
+                x_batch.append(l)
+                s_batch.append(s)
                 y_batch.append(y)
 
-                # flipped_x2 = np.flipud(x2)
-                # flipped_x = np.flipud(l)
-                # x.append(np.concatenate((flipped_x, flipped_x2), axis=2))
-                # y.append(np.flipud(ab))
+                x = np.fliplr(l)
+                s = np.fliplr(s)
+                y = np.fliplr(y)
 
-        return x_batch, y_batch
+                x_batch.append(x)
+                s_batch.append(s)
+                y_batch.append(y)
+
+        return x_batch, s_batch, y_batch
 
 
 # Returns one-hot encoded segmentation object (w x h x 150)
@@ -104,8 +104,5 @@ def generator_fn(n_images, batch_size, images_path, trained_model):
 
     while True:
         for i in range(batches_per_epoch):
-            x, y = batch_images(i, batch_size, images_path, image_paths, trained_model)
-            yield x, y
-
-
-# TODO: flipped
+            x, s, y = batch_images(i, batch_size, images_path, image_paths, trained_model)
+            yield [np.array(x), np.array(s)], np.array(y)
