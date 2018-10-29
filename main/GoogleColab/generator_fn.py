@@ -2,8 +2,9 @@ import zipfile
 from PIL import Image
 from skimage.color import rgb2lab
 import numpy as np
-from scipy import ndimage
+from skimage.transform import resize
 import tensorflow as tf
+import time
 tf.logging.set_verbosity(tf.logging.ERROR)
 
 
@@ -89,9 +90,12 @@ def predict_segmentation(img, trained_model):
     pixel_img = pixel_img - data_mean
     bgr_img = pixel_img[:, :, ::-1]
     segmented_img = trained_model.predict(np.expand_dims(bgr_img, 0))[0]
+    start_time = time.time()
     if image_size != input_size:
-        segmented_img = ndimage.zoom(segmented_img, (1 * image_size[1] / input_size[1],
-                                                     1 * image_size[0] / input_size[0], 1))
+        segmented_img = resize(segmented_img,
+                               (image_size[1], image_size[0], 150),
+                                mode="constant")
+    print(time.time() - start_time)
     return segmented_img
 
 
