@@ -1,33 +1,63 @@
-from keras.models import model_from_json
-from keras.models import Model
+from keras.models import Model, load_model
 from keras.layers import Conv2D, concatenate, Input
 from keras.callbacks import ModelCheckpoint
+from keras import layers
+from keras.backend import tf as ktf
 import tensorflow as tf
 import os
 tf.logging.set_verbosity(tf.logging.ERROR)
 
 
+class Interp(layers.Layer):
+
+    def __init__(self, new_size, **kwargs):
+        self.new_size = new_size
+        super(Interp, self).__init__(**kwargs)
+
+    def build(self, input_shape):
+        super(Interp, self).build(input_shape)
+
+    def call(self, inputs, **kwargs):
+        new_height, new_width = self.new_size
+        resized = ktf.image.resize_images(inputs, [new_height, new_width],
+                                          align_corners=True)
+        return resized
+
+    def compute_output_shape(self, input_shape):
+        return tuple([None, self.new_size[0], self.new_size[1], input_shape[3]])
+
+    def get_config(self):
+        config = super(Interp, self).get_config()
+        config['new_size'] = self.new_size
+        return config
+
+
 # Returns trained model instance
 def load_trained_model(path):
-    json_path = path + ".json"
-    h5_path = path + ".h5"
-    with open(json_path, 'r') as model_file:
-        trained_model = model_from_json(model_file.read())
+    trained_model = load_model(path, custom_objects={'Interp': Interp})
     trained_model._make_predict_function()
-    trained_model.load_weights(h5_path)
     return trained_model
 
 
 # Returns main model
 def model_definition():
     grayscale_input = Input(shape=(None, None, 1))
-    grayscale = Conv2D(1, (3, 3), padding="same", activation="relu", use_bias=True)(grayscale_input)
+    grayscale = Conv2D(128, (3, 3), padding="same", activation="relu", use_bias=True)(grayscale_input)
+    grayscale = Conv2D(256, (3, 3), padding="same", activation="relu", use_bias=True)(grayscale)
+    grayscale = Conv2D(256, (3, 3), padding="same", activation="relu", use_bias=True)(grayscale)
 
     segmentation_input = Input(shape=(None, None, 150))
-    segmentation = Conv2D(1, (3, 3), padding="same", activation="relu", use_bias=True)(segmentation_input)
+    segmentation = Conv2D(128, (3, 3), padding="same", activation="relu", use_bias=True)(segmentation_input)
+    segmentation = Conv2D(256, (3, 3), padding="same", activation="relu", use_bias=True)(segmentation)
+    segmentation = Conv2D(256, (3, 3), padding="same", activation="relu", use_bias=True)(segmentation)
 
     merged = concatenate([grayscale, segmentation], axis=3)
-    colorized = Conv2D(2, (3, 3), padding="same", activation="relu", use_bias=True)(merged)
+    colorized = Conv2D(512, (3, 3), padding="same", activation="relu", use_bias=True)(merged)
+    colorized = Conv2D(256, (3, 3), padding="same", activation="relu", use_bias=True)(colorized)
+    colorized = Conv2D(128, (3, 3), padding="same", activation="relu", use_bias=True)(colorized)
+    colorized = Conv2D(64, (3, 3), padding="same", activation="relu", use_bias=True)(colorized)
+    colorized = Conv2D(32, (3, 3), padding="same", activation="relu", use_bias=True)(colorized)
+    colorized = Conv2D(2, (3, 3), padding="same", activation="relu", use_bias=True)(colorized)
 
     model = Model(inputs=[grayscale_input, segmentation_input], outputs=colorized)
     model.compile(loss="mse", optimizer="adam")
