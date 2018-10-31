@@ -45,35 +45,33 @@ def crop_img(img, crop_width, crop_height):
 
 
 # Returns batch of x and y values packed together
-def batch_images(index, batch_size, images_path, image_paths, trained_model):
-    with zipfile.ZipFile(images_path) as my_zip:
-        x_batch = []
-        s_batch = []
-        y_batch = []
-        start_position = index * batch_size
-        end_position = min(len(image_paths), index * batch_size + batch_size)
-        for image in range(start_position, end_position):
-            with my_zip.open(image_paths[image]) as img:
-                img = Image.open(img)
+def batch_images(index, batch_size, image_paths, trained_model, imgs):
+    x_batch = []
+    s_batch = []
+    y_batch = []
+    for image in range(index, index + batch_size):
+        with imgs.open(image_paths[image]) as img:
+            print(image_paths[image])
+            img = Image.open(img)
 
-                s = predict_segmentation(img, trained_model)
-                l, a, b = lab_img(img)
+            s = predict_segmentation(img, trained_model)
+            l, a, b = lab_img(img)
 
-                y = np.concatenate((a, b), axis=2)
+            y = np.concatenate((a, b), axis=2)
 
-                x_batch.append(l)
-                s_batch.append(s)
-                y_batch.append(y)
+            x_batch.append(l)
+            s_batch.append(s)
+            y_batch.append(y)
 
-                x = np.fliplr(l)
-                s = np.fliplr(s)
-                y = np.fliplr(y)
+            x = np.fliplr(l)
+            s = np.fliplr(s)
+            y = np.fliplr(y)
 
-                x_batch.append(x)
-                s_batch.append(s)
-                y_batch.append(y)
+            x_batch.append(x)
+            s_batch.append(s)
+            y_batch.append(y)
 
-        return x_batch, s_batch, y_batch
+    return x_batch, s_batch, y_batch
 
 
 # Returns one-hot encoded segmentation object (w x h x 150)
@@ -101,12 +99,13 @@ def predict_segmentation(img, trained_model):
 
 # Yields batches of x and y values
 def generator_fn(n_images, batch_size, images_path, trained_model):
-    with zipfile.ZipFile(images_path) as my_zip:
-        image_paths = my_zip.infolist()
+    with zipfile.ZipFile(images_path) as imgs:
+        image_paths = imgs.infolist()
 
-    batches_per_epoch = int(n_images / batch_size)
-
-    while True:
-        for i in range(batches_per_epoch):
-            x, s, y = batch_images(i, batch_size, images_path, image_paths, trained_model)
+        i = 0
+        while True:
+            if i + batch_size > n_images:
+                i = 0
+            x, s, y = batch_images(i, batch_size, image_paths, trained_model, imgs)
+            i += batch_size
             yield [np.array(x), np.array(s)], np.array(y)
