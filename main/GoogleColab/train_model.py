@@ -42,22 +42,13 @@ def load_trained_model(path):
 # Returns main model
 def model_definition():
     grayscale_input = Input(shape=(None, None, 1))
-    grayscale = Conv2D(128, (3, 3), padding="same", activation="relu", use_bias=True)(grayscale_input)
-    grayscale = Conv2D(256, (3, 3), padding="same", activation="relu", use_bias=True)(grayscale)
-    grayscale = Conv2D(256, (3, 3), padding="same", activation="relu", use_bias=True)(grayscale)
+    grayscale = Conv2D(1, (3, 3), padding="same", activation="relu", use_bias=True)(grayscale_input)
 
     segmentation_input = Input(shape=(None, None, 150))
-    segmentation = Conv2D(128, (3, 3), padding="same", activation="relu", use_bias=True)(segmentation_input)
-    segmentation = Conv2D(256, (3, 3), padding="same", activation="relu", use_bias=True)(segmentation)
-    segmentation = Conv2D(256, (3, 3), padding="same", activation="relu", use_bias=True)(segmentation)
+    segmentation = Conv2D(1, (3, 3), padding="same", activation="relu", use_bias=True)(segmentation_input)
 
     merged = concatenate([grayscale, segmentation], axis=3)
-    colorized = Conv2D(512, (3, 3), padding="same", activation="relu", use_bias=True)(merged)
-    colorized = Conv2D(256, (3, 3), padding="same", activation="relu", use_bias=True)(colorized)
-    colorized = Conv2D(128, (3, 3), padding="same", activation="relu", use_bias=True)(colorized)
-    colorized = Conv2D(64, (3, 3), padding="same", activation="relu", use_bias=True)(colorized)
-    colorized = Conv2D(32, (3, 3), padding="same", activation="relu", use_bias=True)(colorized)
-    colorized = Conv2D(2, (3, 3), padding="same", activation="relu", use_bias=True)(colorized)
+    colorized = Conv2D(2, (3, 3), padding="same", activation="relu", use_bias=True)(merged)
 
     model = Model(inputs=[grayscale_input, segmentation_input], outputs=colorized)
     model.compile(loss="mse", optimizer="adam")
