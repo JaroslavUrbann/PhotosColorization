@@ -173,11 +173,12 @@ def class_to_color(n):
 # Takes one instance of input and output (no batches)
 def decode_images(l, s, y, save_path):
     h, w, d = l.shape
-    a, b = np.split(y, [1], 2)
-
-    l = l[:, :, 0] * 100
-    a = a[:, :, 0] * 255 - 127
-    b = b[:, :, 0] * 255 - 128
+    a, b = np.split(y[0], [1], 2)
+    print(a[0])
+    print(b[0])
+    l = (l[:, :, 0] * 100) / 2 + 1
+    a = (a[:, :, 0] * 255 - 127) / 2 + 1
+    b = (b[:, :, 0] * 255 - 128) * 2 - 1
 
     i = 0
     while os.path.isfile(os.path.join(save_path, str(i) + "_segmentation.jpg")):
@@ -214,7 +215,7 @@ def decode_images(l, s, y, save_path):
 
 def validate_images(predict, model, generator_fn, n_batches, save_path):
     batches_done = 0
-    flipped = False
+    flipped = True
     for x_s_batch, y_batch in generator_fn:
         batches_done += 1
         if batches_done > n_batches:
@@ -227,6 +228,10 @@ def validate_images(predict, model, generator_fn, n_batches, save_path):
                 s = s_batch[i]
                 y = y_batch[i]
                 if predict:
-                    y = model.predict([x, s])
+                    predict_x = np.zeros((1, x.shape[0], x.shape[1], 1))
+                    predict_s = np.zeros((1, x.shape[0], x.shape[1], 150))
+                    predict_x[0] = x
+                    predict_s[0] = s
+                    y = model.predict([predict_x, predict_s])
                 decode_images(x, s, y, save_path)
             flipped = not flipped
