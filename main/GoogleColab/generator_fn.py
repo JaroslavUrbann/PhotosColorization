@@ -18,9 +18,9 @@ def lab_img(img):
     a = img[:, :, 1]
     b = img[:, :, 2]
 
-    l = np.array(l) / 100
-    a = (np.array(a) + 127) / 255
-    b = (np.array(b) + 128) / 255
+    l = (np.array(l) / 100) * 2 - 1
+    a = ((np.array(a) + 127) / 255) * 2 - 1
+    b = ((np.array(b) + 128) / 255) * 2 - 1
 
     l = np.expand_dims(l, axis=2)
     a = np.expand_dims(a, axis=2)
@@ -88,10 +88,8 @@ def generator_fn(batch_size, images_path, images_size, trained_model):
     with zipfile.ZipFile(images_path) as imgs:
         image_paths = imgs.infolist()
         n_images = len(image_paths)
-        print(n_images)
         i = 0
         while True:
-            print("batch start index: " + str(i))
             if i + batch_size > n_images:
                 i = 0
             x, s, y = batch_images(i, batch_size, images_size, image_paths, imgs, trained_model)
