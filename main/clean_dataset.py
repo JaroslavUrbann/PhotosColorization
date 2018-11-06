@@ -5,8 +5,8 @@ import shutil
 import random
 import sys
 
-path = "F://places2_24Gb_restructured"
-move_to = "F://places2_training_1"
+path = "F://lfw-deepfunneled"
+move_to = "F://faces_in_wild"
 
 
 def is_grayscale(img_path):
@@ -34,12 +34,18 @@ def remove_grayscale(folder_path):
 
 def split_folder(folder_path, move_to_path, n_parts):
     image_paths = os.listdir(folder_path)
-    random.shuffle(image_paths)
     print(len(image_paths))
     n_files_to_move = int(len(image_paths) / n_parts)
     for i in range(n_files_to_move):
         shutil.move(os.path.join(folder_path, image_paths[i]), os.path.join(move_to_path, image_paths[i]))
         print(str(100 * i / n_files_to_move) + " %")
+
+
+def shuffle_dataset(folder_path):
+    image_paths = os.listdir(folder_path)
+    random.shuffle(image_paths)
+    for i in range(len(image_paths)):
+        os.rename(os.path.join(folder_path, image_paths[i]), os.path.join(folder_path, "0" + str(i) + ".jpg"))
 
 
 def restructure_dataset(folder_path, destination_path):
@@ -58,6 +64,8 @@ def restructure_dataset(folder_path, destination_path):
 
 start_time = time.time()
 # remove_grayscale(path)
-split_folder(path, move_to, 26)
+# split_folder(path, move_to, 26)
 # remove_grayscale(move_to)
+# restructure_dataset(path, move_to)
+shuffle_dataset(move_to)
 print(str(time.time() - start_time))
