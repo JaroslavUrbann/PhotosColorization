@@ -174,11 +174,9 @@ def class_to_color(n):
 def decode_images(l, s, y, save_path):
     h, w, d = l.shape
     a, b = np.split(y[0], [1], 2)
-    print(a[0])
-    print(b[0])
-    l = (l[:, :, 0] * 100) / 2 + 1
-    a = (a[:, :, 0] * 255 - 127) / 2 + 1
-    b = (b[:, :, 0] * 255 - 128) * 2 - 1
+    l = (l[:, :, 0] + 1) * 100 / 2
+    a = (a[:, :, 0] + 1) * 255 / 2 - 127
+    b = (b[:, :, 0] + 1) * 255 / 2 - 128
 
     i = 0
     while os.path.isfile(os.path.join(save_path, str(i) + "_segmentation.jpg")):
@@ -211,6 +209,12 @@ def decode_images(l, s, y, save_path):
     color_output[:, :, 1] = a
     color_output[:, :, 2] = b
     misc.imsave(os.path.join(save_path, str(i) + "_output.jpg"), lab2rgb(color_output))
+
+    color_output = np.zeros((h, w, 3))
+    color_output[:, :, 0] = np.full((h, w), 70)
+    color_output[:, :, 1] = a
+    color_output[:, :, 2] = b
+    misc.imsave(os.path.join(save_path, str(i) + "_output_labels.jpg"), lab2rgb(color_output))
 
 
 def validate_images(predict, model, generator_fn, n_batches, save_path):
