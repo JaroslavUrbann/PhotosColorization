@@ -4,7 +4,7 @@ from skimage.color import rgb2lab
 import numpy as np
 from skimage.transform import resize
 import tensorflow as tf
-import time
+import random
 tf.logging.set_verbosity(tf.logging.ERROR)
 
 
@@ -30,9 +30,9 @@ def lab_img(img):
 
 
 # Returns batch of x and y values packed together
-def batch_images(index, batch_size, images_size, image_paths, imgs, trained_model):
+def batch_images(index, batch_size, images_size, image_paths, imgs, trained_model, flip):
     x_batch = np.zeros((batch_size, images_size[1], images_size[0], 1))
-    s_batch = np.zeros((batch_size, images_size[1], images_size[0], 150))
+    s_batch = np.zeros((batch_size, int(images_size[1] / 8), int(images_size[0] / 8), 150))
     y_batch = np.zeros((batch_size, images_size[1], images_size[0], 2))
     for i in range(index, index + batch_size):
         with imgs.open(image_paths[i]) as img:
@@ -50,13 +50,14 @@ def batch_images(index, batch_size, images_size, image_paths, imgs, trained_mode
             s_batch[i - index] = s
             y_batch[i - index] = y
 
-            x = np.fliplr(l)
-            s = np.fliplr(s)
-            y = np.fliplr(y)
+            if flip:
+                x = np.fliplr(l)
+                s = np.fliplr(s)
+                y = np.fliplr(y)
 
-            x_batch[i - index] = x
-            s_batch[i - index] = s
-            y_batch[i - index] = y
+                x_batch[i - index] = x
+                s_batch[i - index] = s
+                y_batch[i - index] = y
 
     return x_batch, s_batch, y_batch
 
@@ -67,6 +68,7 @@ def predict_segmentation(img, trained_model):
     data_mean = np.array([[[123.68, 116.779, 103.939]]])
     image_size = img.size
     input_size = (473, 473)
+    output_size = (22, 27)
 
     if image_size != input_size:
         img = img.resize(input_size)
@@ -75,23 +77,29 @@ def predict_segmentation(img, trained_model):
     pixel_img = pixel_img - data_mean
     bgr_img = pixel_img[:, :, ::-1]
     segmented_img = trained_model.predict(np.expand_dims(bgr_img, 0))[0]
-    if image_size != input_size:
-          segmented_img = resize(segmented_img,
-                                 (image_size[1], image_size[0], 150),
-                                  mode="constant",
-                                  preserve_range=True)
+    #     segmented_img = segmented_img * 2 - 1
+    if output_size != input_size:
+        segmented_img = resize(segmented_img,
+                               (output_size[1], output_size[0], 150),
+                               mode="constant",
+                               preserve_range=True)
     return segmented_img
 
 
 # Yields batches of x and y values
-def generator_fn(batch_size, images_path, images_size, trained_model):
+def generator_fn(batch_size, images_path, images_size, trained_model, flip=False, validation=False):
     with zipfile.ZipFile(images_path) as imgs:
         image_paths = imgs.infolist()
+        random.shuffle(image_paths)
         n_images = len(image_paths)
+        if validation:
+            n_images = batch_size
+        #         print(n_images)
         i = 0
         while True:
-            if i + batch_size > n_images:
+            if i + batch_size >= n_images:
                 i = 0
-            x, s, y = batch_images(i, batch_size, images_size, image_paths, imgs, trained_model)
+            #             print("batch start index: " + str(i) + "   " + images_path)
+            x, s, y = batch_images(i, batch_size, images_size, image_paths, imgs, trained_model, flip)
             i += batch_size
             yield [x, s], y
