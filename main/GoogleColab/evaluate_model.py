@@ -5,6 +5,7 @@ from scipy import misc
 from collections import namedtuple
 import copy
 import os
+from skimage.transform import resize
 
 Label = namedtuple('Label', [
     'name',
@@ -177,6 +178,8 @@ def decode_images(l, s, y, save_path):
     l = (l[:, :, 0] + 1) * 100 / 2
     a = (a[:, :, 0] + 1) * 255 / 2 - 127
     b = (b[:, :, 0] + 1) * 255 / 2 - 128
+    if l.shape != s.shape:
+        s = resize(s, (h, w, 150), mode="constant", preserve_range=True)
 
     i = 0
     while os.path.isfile(os.path.join(save_path, str(i) + "_segmentation.jpg")):
@@ -233,7 +236,7 @@ def validate_images(predict, model, generator_fn, n_batches, save_path):
                 y = y_batch[i]
                 if predict:
                     predict_x = np.zeros((1, x.shape[0], x.shape[1], 1))
-                    predict_s = np.zeros((1, x.shape[0], x.shape[1], 150))
+                    predict_s = np.zeros((1, s.shape[0], s.shape[1], 150))
                     predict_x[0] = x
                     predict_s[0] = s
                     y = model.predict([predict_x, predict_s])
