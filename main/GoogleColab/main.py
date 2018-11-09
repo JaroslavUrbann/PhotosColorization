@@ -9,7 +9,7 @@ batch_size = 1
 batches_per_epoch = 1
 n_epochs = 1
 batches_per_validation = 1
-images_size = (255, 255)
+images_size = (176, 216)
 
 training_path = os.path.join(current_directory, "dataset_training.zip")
 validation_path = os.path.join(current_directory, "test_dataset.zip")
@@ -19,7 +19,7 @@ trained_model = load_trained_model(trained_model_path)
 # training_data_fn = generator_fn(batch_size, training_path, images_size, trained_model)
 validation_data_fn = generator_fn(batch_size, validation_path, images_size, trained_model)
 # model = model_definition()
-model = load_model("model_final.hdf5")
+model = load_model("model_checkpoint.hdf5")
 
 # train_model(model,
 #             training_data_fn,
