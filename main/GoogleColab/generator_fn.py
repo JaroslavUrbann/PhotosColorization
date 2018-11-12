@@ -68,7 +68,7 @@ def predict_segmentation(img, trained_model):
     data_mean = np.array([[[123.68, 116.779, 103.939]]])
     image_size = img.size
     input_size = (473, 473)
-    output_size = (22, 27)
+    output_size = (32, 32)
 
     if image_size != input_size:
         img = img.resize(input_size)
@@ -77,7 +77,6 @@ def predict_segmentation(img, trained_model):
     pixel_img = pixel_img - data_mean
     bgr_img = pixel_img[:, :, ::-1]
     segmented_img = trained_model.predict(np.expand_dims(bgr_img, 0))[0]
-    #     segmented_img = segmented_img * 2 - 1
     if output_size != input_size:
         segmented_img = resize(segmented_img,
                                (output_size[1], output_size[0], 150),
@@ -90,16 +89,13 @@ def predict_segmentation(img, trained_model):
 def generator_fn(batch_size, images_path, images_size, trained_model, flip=False, validation=False):
     with zipfile.ZipFile(images_path) as imgs:
         image_paths = imgs.infolist()
-        random.shuffle(image_paths)
         n_images = len(image_paths)
         if validation:
             n_images = batch_size
-        #         print(n_images)
         i = 0
         while True:
             if i + batch_size >= n_images:
                 i = 0
-            #             print("batch start index: " + str(i) + "   " + images_path)
             x, s, y = batch_images(i, batch_size, images_size, image_paths, imgs, trained_model, flip)
             i += batch_size
             yield [x, s], y
