@@ -62,10 +62,48 @@ def restructure_dataset(folder_path, destination_path):
     print(counter)
 
 
+def crop_dataset(folder_path, crop_width, crop_height):
+    image_paths = os.listdir(folder_path)
+    n_extras = 0
+    for i in range(len(image_paths)):
+        img = Image.open(os.path.join(folder_path,image_paths[i]))
+        img_width, img_height = img.size
+        if img_width > crop_width and img_height > crop_height:
+            n_width_crops = 0
+            while n_width_crops * crop_width <= img_width:
+                n_width_crops += 1
+            n_width_crops -= 1
+            n_height_crops = 0
+            while n_height_crops * crop_height <= img_height:
+                n_height_crops += 1
+            n_height_crops -= 1
+            img_left = int((img_width - crop_width * n_width_crops) / 2)
+            img_top = int((img_height - crop_height * n_height_crops) / 2)
+            n_crop = 0
+            for x in range(n_height_crops):
+                for y in range(n_width_crops):
+                    n_crop += 1
+                    name = str(i) + "_" + str(n_crop) + ".jpg"
+                    if n_crop == 1:
+                        name = image_paths[i]
+                        n_extras += 1
+                    img.crop((img_left + x * crop_width, img_top + y * crop_height, img_left + (x + 1) * crop_width, img_top + (y + 1) * crop_height)).save(os.path.join(folder_path, str(name)))
+        img.close()
+        print(i)
+    print("----------------------------")
+    print(len(image_paths))
+    print(n_extras)
+    print(1 + n_extras / len(image_paths))
+    print(n_extras + len(image_paths))
+
+
+
+
 start_time = time.time()
 # remove_grayscale(path)
 # split_folder(path, move_to, 26)
 # remove_grayscale(move_to)
 # restructure_dataset(path, move_to)
-shuffle_dataset(move_to)
+# shuffle_dataset(move_to)
+crop_dataset("C://Users//JaroslavUrban//Desktop//testimgs", 256, 256)
 print(str(time.time() - start_time))
