@@ -17,8 +17,12 @@ async function main() {
         var dialog = getDialog();
         console.log(dialog);
         if(dialog instanceof Element || dialog instanceof HTMLDocument){
-            // dialog.childNodes[0].childNodes[2].childNodes[0].click(); for gpu close to memory limit
-            dialog.childNodes[0].childNodes[2].childNodes[1].click();
+            if(dialog.childNodes[0].childNodes[1].childNodes[0].textContent == "GPU memory usage is close to the limit"){
+                dialog.childNodes[0].childNodes[2].childNodes[0].click();
+            }
+            else{
+                dialog.childNodes[0].childNodes[2].childNodes[1].click();
+            }
         }
         await sleep(300000);
     }
