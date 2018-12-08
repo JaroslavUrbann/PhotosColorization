@@ -1,8 +1,10 @@
 from PIL import Image, ImageChops
+from os.path import basename
 import time
 import os
 import shutil
 import random
+import zipfile
 import sys
 
 path = "F://lfw-deepfunneled"
@@ -21,15 +23,21 @@ def is_grayscale(img_path):
 
 
 def remove_grayscale(folder_path):
+    subdirectories = [x for x in os.walk(folder_path) if x[2]]
+    image_paths = []
+    for r, d, i in subdirectories:
+        for image in i:
+            image_paths.append(os.path.join(r, image))
+        print(str(r))
+        print(len(i))
     n_removed_imgs = 0
-    image_paths = os.listdir(folder_path)
     n_images = len(image_paths)
     print(n_images)
     for i in range(len(image_paths)):
-        if is_grayscale(os.path.join(folder_path, image_paths[i])):
-            os.remove(os.path.join(folder_path, image_paths[i]))
+        if is_grayscale(image_paths[i]):
+            os.remove(image_paths[i])
             n_removed_imgs += 1
-            print(str(n_removed_imgs) + " | " + str(100 * i / n_images) + " %")
+        print(str(n_removed_imgs) + " | " + str(100 * i / n_images) + " %")
 
 
 def split_folder(folder_path, move_to_path, n_parts):
@@ -63,40 +71,64 @@ def restructure_dataset(folder_path, destination_path):
 
 
 def crop_dataset(folder_path, crop_width, crop_height):
-    image_paths = os.listdir(folder_path)
+    subdirectories = [x for x in os.walk(folder_path) if x[2]]
+    image_paths = []
     n_extras = 0
+    n_removed = 0
+    for r, d, i in subdirectories:
+        for image in i:
+            image_paths.append(os.path.join(r, image))
+        print(str(r))
+        print(len(i))
     for i in range(len(image_paths)):
-        img = Image.open(os.path.join(folder_path,image_paths[i]))
+        print(str(n_removed) + " | " + str(n_extras) + " | " + str(100*i/len(image_paths)) + " %")
+        img = Image.open(image_paths[i])
         img_width, img_height = img.size
-        if img_width > crop_width and img_height > crop_height:
-            n_width_crops = 0
-            while n_width_crops * crop_width <= img_width:
+        if img_width < crop_width or img_height < crop_height:
+            img.close()
+            os.remove(image_paths[i])
+            n_removed += 1
+            continue
+        if img_width > crop_width or img_height > crop_height:
+            n_width_crops = 1
+            while (n_width_crops + 1) * crop_width <= img_width:
                 n_width_crops += 1
-            n_width_crops -= 1
-            n_height_crops = 0
-            while n_height_crops * crop_height <= img_height:
+            n_height_crops = 1
+            while (n_height_crops + 1) * crop_height <= img_height:
                 n_height_crops += 1
-            n_height_crops -= 1
             img_left = int((img_width - crop_width * n_width_crops) / 2)
             img_top = int((img_height - crop_height * n_height_crops) / 2)
             n_crop = 0
             for x in range(n_height_crops):
                 for y in range(n_width_crops):
                     n_crop += 1
-                    name = str(i) + "_" + str(n_crop) + ".jpg"
-                    if n_crop == 1:
-                        name = image_paths[i]
+                    name = basename(image_paths[i])
+                    if n_crop > 1:
+                        name = os.path.splitext(basename(image_paths[i]))[0] + "_" + str(n_crop) + ".jpg"
                         n_extras += 1
-                    img.crop((img_left + x * crop_width, img_top + y * crop_height, img_left + (x + 1) * crop_width, img_top + (y + 1) * crop_height)).save(os.path.join(folder_path, str(name)))
+                    img.crop((img_left + x * crop_width, img_top + y * crop_height, img_left + (x + 1) * crop_width, img_top + (y + 1) * crop_height)).save(os.path.join(os.path.dirname(image_paths[i]), str(name)))
         img.close()
-        print(i)
     print("----------------------------")
-    print(len(image_paths))
-    print(n_extras)
-    print(1 + n_extras / len(image_paths))
-    print(n_extras + len(image_paths))
+    print("n_original_images: " + str(len(image_paths)))
+    print("n_extra_images: " + str(n_extras))
+    print("% increase: " + str(100 * n_extras / len(image_paths)))
+    print("current_number_of_images: " + str(n_extras + len(image_paths)))
 
 
+def create_image_bundle(folder_path, destination_path, bundle_size):
+    subdirectories = [x for x in os.walk(folder_path) if x[2]]
+    image_paths = []
+    for r, d, i in subdirectories:
+        for image in i:
+            image_paths.append(os.path.join(r, image))
+        print(str(d))
+    random.shuffle(image_paths)
+    bundle = zipfile.ZipFile(destination_path, "w")
+    for i in range(min(bundle_size, len(image_paths))):
+        print(i)
+        bundle.write(image_paths[i], basename(image_paths[i]))
+        os.remove(image_paths[i])
+    bundle.close()
 
 
 start_time = time.time()
@@ -105,5 +137,7 @@ start_time = time.time()
 # remove_grayscale(move_to)
 # restructure_dataset(path, move_to)
 # shuffle_dataset(move_to)
-crop_dataset("C://Users//JaroslavUrban//Desktop//testimgs", 256, 256)
+crop_dataset("C://Users//Jaroslav Urban//Desktop//ILSVRC2012_img_train", 256, 256)
+# remove_grayscale("C://Users//Jaroslav Urban//Desktop//ILSVRC2012_img_train")
+# create_image_bundle("C://Users//Jaroslav Urban//Desktop//test", "C://Users//Jaroslav Urban//Desktop//test.zip", 2)
 print(str(time.time() - start_time))
