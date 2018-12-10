@@ -7,12 +7,11 @@ import random
 import zipfile
 import sys
 
-path = "F://lfw-deepfunneled"
+path = "C://ILSVRC2012_img_train"
 move_to = "F://faces_in_wild"
 
 
-def is_grayscale(img_path):
-    img = Image.open(img_path)
+def is_grayscale(img):
     if img.mode == "RGB":
         rgb = img.split()
         if ImageChops.difference(rgb[0], rgb[1]).getextrema()[1] != 0:
@@ -34,7 +33,8 @@ def remove_grayscale(folder_path):
     n_images = len(image_paths)
     print(n_images)
     for i in range(len(image_paths)):
-        if is_grayscale(image_paths[i]):
+        img = Image.open(image_paths[i])
+        if is_grayscale(img):
             os.remove(image_paths[i])
             n_removed_imgs += 1
         print(str(n_removed_imgs) + " | " + str(100 * i / n_images) + " %")
@@ -81,10 +81,10 @@ def crop_dataset(folder_path, crop_width, crop_height):
         print(str(r))
         print(len(i))
     for i in range(len(image_paths)):
-        print(str(n_removed) + " | " + str(n_extras) + " | " + str(100*i/len(image_paths)) + " %")
+        print("removed: " + str(n_removed) + " | " + "extras: " + str(n_extras) + " | " + str(100*i/len(image_paths)) + " %")
         img = Image.open(image_paths[i])
         img_width, img_height = img.size
-        if img_width < crop_width or img_height < crop_height:
+        if img_width < crop_width or img_height < crop_height or is_grayscale(img):
             img.close()
             os.remove(image_paths[i])
             n_removed += 1
@@ -96,11 +96,11 @@ def crop_dataset(folder_path, crop_width, crop_height):
             n_height_crops = 1
             while (n_height_crops + 1) * crop_height <= img_height:
                 n_height_crops += 1
-            img_left = int((img_width - crop_width * n_width_crops) / 2)
-            img_top = int((img_height - crop_height * n_height_crops) / 2)
+            img_left = (img_width - crop_width * n_width_crops) // 2
+            img_top = (img_height - crop_height * n_height_crops) // 2
             n_crop = 0
-            for x in range(n_height_crops):
-                for y in range(n_width_crops):
+            for y in range(n_height_crops):
+                for x in range(n_width_crops):
                     n_crop += 1
                     name = basename(image_paths[i])
                     if n_crop > 1:
@@ -121,12 +121,13 @@ def create_image_bundle(folder_path, destination_path, bundle_size):
     for r, d, i in subdirectories:
         for image in i:
             image_paths.append(os.path.join(r, image))
-        print(str(d))
+        print(str(r))
+        print(len(i))
     random.shuffle(image_paths)
     bundle = zipfile.ZipFile(destination_path, "w")
     for i in range(min(bundle_size, len(image_paths))):
-        print(i)
-        bundle.write(image_paths[i], basename(image_paths[i]))
+        print(str(100 * i / min(bundle_size, len(image_paths))) + " %")
+        bundle.write(image_paths[i], str(i) + ".jpg")
         os.remove(image_paths[i])
     bundle.close()
 
@@ -137,7 +138,7 @@ start_time = time.time()
 # remove_grayscale(move_to)
 # restructure_dataset(path, move_to)
 # shuffle_dataset(move_to)
-crop_dataset("C://Users//Jaroslav Urban//Desktop//ILSVRC2012_img_train", 256, 256)
-# remove_grayscale("C://Users//Jaroslav Urban//Desktop//ILSVRC2012_img_train")
-# create_image_bundle("C://Users//Jaroslav Urban//Desktop//test", "C://Users//Jaroslav Urban//Desktop//test.zip", 2)
+# crop_dataset("D://groups", 256, 256)
+# remove_grayscale("D://groups")
+create_image_bundle("D://ILSVRC2012_img_train", "D://imagenet_training_2.zip", 46720)
 print(str(time.time() - start_time))
