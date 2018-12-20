@@ -1,5 +1,7 @@
 from kivy.app import App
 from kivy.core.window import Window
+from kivy.core.window import Window
+Window.size = (1024, 576)
 
 
 class PhotosColorizationApp(App):
