@@ -6,21 +6,32 @@ AnchorLayout:
         size_hint_max: 1920, 1080   # use ifs instead of this in the end
         size_hint_min: 10, 10       #
         BoxLayout:                                                  # left side
-            size_hint: 0.5, 1
+            size_hint: 0.44, 1
             orientation: "vertical"
-            Image:                                                  # grayscale image -- can't anchor on bottom for some reason
-                size_hint: 1, 0.8
-                source: "b.jpg"
+            Image:                                            # grayscale image - can't anchor on bottom for some reason
+                size_hint: 1, 0.85
+                source: "assets/b.jpg"
+            AnchorLayout:                                                  # left & right gallery buttons
+                size_hint: 1, 0.05
+                BoxLayout:
+                    size_hint: 0.4, 1
+                    Button:
+                        size_hint: 0.5, 1
+                        text: "<"
+                    Button:
+                        size_hint: 0.5, 1
+                        text: ">"
             BoxLayout:                                                  # start & upload buttons
-                size_hint: 1, 0.2
+                size_hint: 1, 0.1
                 Button:
-                    size_hint: 0.5, 0.8
+                    size_hint: 0.5, 1
                     text: "load"
+                    on_release: app.show_load()
                 Button:
-                    size_hint: 0.5, 0.8
+                    size_hint: 0.5, 1
                     text: "start"
         ProgressBar:                                                     # middle arrow
-            size_hint: 0.2, 1
+            size_hint: 0.12, 1
             id: pb
             max: 1000
             value: 300
@@ -29,23 +40,53 @@ AnchorLayout:
                     border: [int(min(self.width * (self.value / float(self.max)) if self.max else 0, 12))] * 4
                     pos: self.x, self.center_y - 12
                     size: self.width * (self.value / float(self.max)) if self.max else 0, self.width * 473/512
-                    source: 'green.png'
+                    source: 'assets/green.png'
                 BorderImage:
                     border: (0, 0, 0, 0)
                     pos: self.x, self.center_y - 12
                     size: self.width, self.width * 473/512
-                    source: 'tr.png'
+                    source: 'assets/tr.png'
         BoxLayout:                                                  # right side
-            size_hint: 0.5, 1
+            size_hint: 0.44, 1
             orientation: "vertical"
-            Image:                                                  # colored image -- can't anchor on bottom for some reason
-                size_hint: 1, 0.8
-                source: "d.jpg"
+            Image:                                             # colored image - can't anchor on bottom for some reason
+                size_hint: 1, 0.85
+                source: "assets/d.jpg"
+            AnchorLayout:                                                  # left & right gallery buttons
+                size_hint: 1, 0.05
+                BoxLayout:
+                    size_hint: 0.4, 1
+                    Button:
+                        size_hint: 0.5, 1
+                        text: "<"
+                    Button:
+                        size_hint: 0.5, 1
+                        text: ">"
             BoxLayout:                                                  # stop & save buttons
-                size_hint: 1, 0.2
+                size_hint: 1, 0.1
                 Button:
-                    size_hint: 0.5, 0.8
+                    size_hint: 0.5, 1
                     text: "save"
                 Button:
-                    size_hint: 0.5, 0.8
+                    size_hint: 0.5, 1
                     text: "save all"
+
+<LoadDialog>:
+    BoxLayout:
+        size: root.size
+        pos: root.pos
+        orientation: "vertical"
+        FileChooserListView:
+            id: filechooser
+            dirselect: True
+
+        BoxLayout:
+            size_hint_y: None
+            height: 30
+            Button:
+                text: "Cancel"
+                on_release: root.cancel()
+
+            Button:
+                text: "Load"
+                on_release: root.load(filechooser.path, filechooser.selection)
