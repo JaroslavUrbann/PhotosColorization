@@ -9,6 +9,7 @@ AnchorLayout:
             size_hint: 0.44, 1
             orientation: "vertical"
             Image:                                            # grayscale image - can't anchor on bottom for some reason
+                id: grayscale_img
                 size_hint: 1, 0.85
                 source: "assets/b.jpg"
             AnchorLayout:                                                  # left & right gallery buttons
@@ -18,16 +19,20 @@ AnchorLayout:
                     Button:
                         size_hint: 0.5, 1
                         text: "<"
+                        id: previous_grayscale
                     Button:
                         size_hint: 0.5, 1
                         text: ">"
+                        id: next_grayscale
             BoxLayout:                                                  # start & upload buttons
                 size_hint: 1, 0.1
                 Button:
                     size_hint: 0.5, 1
+                    id: load
                     text: "load"
                     on_release: app.show_load()
                 Button:
+                    id: start
                     size_hint: 0.5, 1
                     text: "start"
         ProgressBar:                                                     # middle arrow
@@ -50,6 +55,7 @@ AnchorLayout:
             size_hint: 0.44, 1
             orientation: "vertical"
             Image:                                             # colored image - can't anchor on bottom for some reason
+                id: colorized_img
                 size_hint: 1, 0.85
                 source: "assets/d.jpg"
             AnchorLayout:                                                  # left & right gallery buttons
@@ -59,15 +65,19 @@ AnchorLayout:
                     Button:
                         size_hint: 0.5, 1
                         text: "<"
+                        id: previous_colorized
                     Button:
                         size_hint: 0.5, 1
                         text: ">"
+                        id: next_colorized
             BoxLayout:                                                  # stop & save buttons
                 size_hint: 1, 0.1
                 Button:
+                    id: save
                     size_hint: 0.5, 1
                     text: "save"
                 Button:
+                    id: save_all
                     size_hint: 0.5, 1
                     text: "save all"
 

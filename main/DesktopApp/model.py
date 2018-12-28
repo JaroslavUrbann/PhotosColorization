@@ -7,8 +7,24 @@ import time
 class Model:
     def __init__(self):
         self.grayscale_images = []
+        self.colorized_images = []
         self.is_working = False
         self.last_image_set_time = time.time()
+
+    def next_grayscale(self, image):
+        pass
+
+    def previous_grayscale(self, image):
+        pass
+
+    def next_colorized(self, image):
+        pass
+
+    def previous_colorized(self, image):
+        pass
+
+    def get_progress(self):
+        pass
 
     def set_image_paths(self, path: str):
         image_paths = []
@@ -22,18 +38,17 @@ class Model:
                     image_paths.append(path)
             if image_paths:
                 images = []
-                is_loaded = True
                 for image_path in image_paths:
                     try:
                         images.append(Image.open(image_path))
                     except:
-                        is_loaded = False
+                        pass
                 if time.time() - self.last_image_set_time > 0.1:
                     self.grayscale_images = images
                 else:
                     self.grayscale_images.extend(images)
                 self.last_image_set_time = time.time()
-                return is_loaded
+                return bool(self.grayscale_images)
         return False
 
     def start_conversion(self):
