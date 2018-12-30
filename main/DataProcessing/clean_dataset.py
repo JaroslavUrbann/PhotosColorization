@@ -136,8 +136,6 @@ def create_image_bundle(folder_path, destination_path, bundle_size):
 def resize_dataset(folder_path, size):
     subdirectories = [x for x in os.walk(folder_path) if x[2]]
     image_paths = []
-    resolutions_distribution = {}
-    n_extras = 0
     n_removed = 0
     for r, d, i in subdirectories:
         for image in i:
@@ -145,15 +143,8 @@ def resize_dataset(folder_path, size):
         print(str(r))
         print(len(i))
     for i in range(len(image_paths)):
-        print("removed: " + str(n_removed) + " | " + "extras: " + str(n_extras) + " | " + str(100*i/len(image_paths)) + " %")
+        print("removed: " + str(n_removed) + " | " + str(100*i/len(image_paths)) + " %")
         img = Image.open(image_paths[i])
-
-        n_pixels = img.size[0] * img.size[1]
-        if str(n_pixels) in resolutions_distribution:
-            resolutions_distribution[str(n_pixels)] += 1
-        else:
-            resolutions_distribution[str(n_pixels)] = 1
-
         if is_grayscale(img):
             img.close()
             os.remove(image_paths[i])
@@ -165,9 +156,6 @@ def resize_dataset(folder_path, size):
         new_im.save(image_paths[i])
         img.close()
         new_im.close()
-    np.save('resolutions_dictionary.npy', resolutions_distribution)
-    for item in resolutions_distribution:
-        print(item + ": " + str(resolutions_distribution[item]))
 
 
 start_time = time.time()
@@ -178,6 +166,6 @@ start_time = time.time()
 # shuffle_dataset(move_to)
 # crop_dataset("C://frames", 256, 256)
 # remove_grayscale("D://groups")
-create_image_bundle("D://ILSVRC2012_img_train", "D://imagenet_training_26.zip", 46720)
-# resize_dataset("C://Users//Jaroslav Urban//Desktop//test", 256)
+create_image_bundle("E://dataset2", "E://dataset2_training_4.zip", 46720)
+# resize_dataset("E://dataset2", 256)
 print(str(time.time() - start_time))
