@@ -20,10 +20,12 @@ AnchorLayout:
                         size_hint: 0.5, 1
                         text: "<"
                         id: previous_grayscale
+                        on_press: app.previous_grayscale()
                     Button:
                         size_hint: 0.5, 1
                         text: ">"
                         id: next_grayscale
+                        on_press: app.next_grayscale()
             BoxLayout:                                                  # start & upload buttons
                 size_hint: 1, 0.1
                 Button:

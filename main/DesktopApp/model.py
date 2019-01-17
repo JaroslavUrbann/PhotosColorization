@@ -19,45 +19,30 @@ class Model:
         self.model = None
         self.pspnet = None
 
-    def next_grayscale(self, image):
-        pass
+    def get_last_grayscale(self):
+        if self.grayscale_images:
+            return self.grayscale_images[-1]
 
-    def previous_grayscale(self, image):
-        pass
-
-    def next_colorized(self, image):
-        pass
-
-    def previous_colorized(self, image):
-        pass
+    def get_last_colorized(self):
+        if self.colorized_images:
+            return self.colorized_images[-1]
 
     def get_progress(self):
         pass
 
     def set_image_paths(self, path: str):
-        image_paths = []
-        if not self.is_working:
-            if os.path.isdir(path):
-                image_paths.extend(glob(os.path.join(path, "*.jpg")))
-                image_paths.extend(glob(os.path.join(path, "*.png")))
-            else:
-                extension = os.path.splitext(path)[1].lower()
-                if extension == ".jpg" or extension == ".png":
-                    image_paths.append(path)
-            if image_paths:
-                images = []
-                for image_path in image_paths:
-                    try:
-                        images.append(Image.open(image_path))
-                    except:
-                        pass
-                if time.time() - self.last_image_set_time > 0.1:
-                    self.grayscale_images = images
-                else:
-                    self.grayscale_images.extend(images)
-                self.last_image_set_time = time.time()
-                return bool(self.grayscale_images)
-        return False
+        replaced = False
+        try:
+            img = Image.open(path)
+            img = img.convert("RGB")
+        except:
+            return False, False
+        if time.time() - self.last_image_set_time > 0.5:
+            self.grayscale_images = []
+            replaced = True
+        self.grayscale_images.append(img)
+        self.last_image_set_time = time.time()
+        return True, replaced
 
     def resize_img(self, img):
         w, h = img.size
@@ -77,14 +62,16 @@ class Model:
             self.pspnet = load_model("pspnet.h5", custom_objects={'Interp': Interp})
             self.pspnet._make_predict_function()
         if not self.model:
-            self.model = load_model("model_final.hdf5")
+            self.model = load_model("FinalModel.hdf5")
+            self.model._make_predict_function()
 
         for i in range(len(self.grayscale_images)):
             img = self.resize_img(self.grayscale_images[i])
             l = self.img2l(img)
-            segmentation = self.predict_segmentation(img, img.size / 8)
+            segmentation = self.predict_segmentation(img, (img.size[1] / 8, img.size[0] / 8))
+            print(l.shape)
+            print(segmentation.shape)
             y = self.model.predict([l, segmentation])
-            print(y.shape)
             a, b = np.split(y[0], [1], 2)  # možná líp?
             l = l[:, :, 0] * 100
             a = (a[:, :, 0] + 1) * 255 / 2 - 127
@@ -101,7 +88,7 @@ class Model:
         l = np.expand_dims(l, axis=0)
         return l
 
-    def predict_segmentation(self, img, output_size):   # w x h
+    def predict_segmentation(self, img, output_shape):   # w x h
         input_size = 473
         img.thumbnail((input_size, input_size))
         new_img = Image.new('RGB', (input_size, input_size))
@@ -111,9 +98,9 @@ class Model:
         new_img = np.array(new_img) - np.array([[[123.68, 116.779, 103.939]]])
         bgr_img = new_img[:, :, ::-1]
         segmented_img = self.pspnet.predict(np.expand_dims(bgr_img, axis=0))[:, top:top+img.size[1], left:left+img.size[0], :]
-        if output_size != (473, 473):
+        if output_shape != (input_size, input_size):
             segmented_img = resize(segmented_img,
-                                   (1, output_size[1], output_size[0], 150),
+                                   (1, output_shape[0], output_shape[1], 150),
                                    mode="constant",
                                    preserve_range=True)
         return segmented_img
@@ -141,3 +128,13 @@ class Interp(layers.Layer):
         config = super(Interp, self).get_config()
         config['new_size'] = self.new_size
         return config
+
+
+if __name__ == "__main__":
+    xd = Model()
+    print(xd.set_image_paths("C://Users//Jaroslav Urban//Desktop//a.jpg"))
+    print(xd.set_image_paths("C://Users//Jaroslav Urban//Desktop//xd.jpg"))
+    tim = time.time()
+    xd.start_conversion()
+    print(time.time() - tim)
+    print(len(xd.colorized_images))

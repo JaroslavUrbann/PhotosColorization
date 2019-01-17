@@ -1,8 +1,5 @@
 from model import Model
-from glob import glob
-from PIL import Image
-import os
-import time
+from io import BytesIO
 
 
 class Controller:
@@ -10,20 +7,22 @@ class Controller:
         self.model = Model()
 
     def set_image_paths(self, path: str):
-        is_loaded = self.model.set_image_paths(path)
-        return is_loaded
+        is_loaded, is_replaced = self.model.set_image_paths(path)
+        return is_loaded, is_replaced
 
-    def next_grayscale(self, image):
-        pass
+    def get_last_grayscale(self):
+        image = self.model.get_last_grayscale()
+        img_io = BytesIO()
+        image.save(img_io, format="jpeg")
+        img_io.seek(0)
+        return img_io
 
-    def previous_grayscale(self, image):
-        pass
-
-    def next_colorized(self, image):
-        pass
-
-    def previous_colorized(self, image):
-        pass
+    def get_last_colorized(self):
+        image = self.model.get_last_colorized()
+        img_io = BytesIO()
+        image.save(img_io, format="jpeg")
+        img_io.seek(0)
+        return img_io
 
     def get_progress(self):
         pass
