@@ -24,11 +24,11 @@ class Controller:
         img_io.seek(0)
         return img_io
 
-    def get_progress(self):
-        pass
+    def is_colorized(self):
+        return bool(self.model.is_colorized)
 
     def start(self):
-        pass
+        self.model.start_conversion()
 
     def save(self):
         pass

@@ -37,6 +37,7 @@ AnchorLayout:
                     id: start
                     size_hint: 0.5, 1
                     text: "start"
+                    on_press: app.start()
         ProgressBar:                                                     # middle arrow
             size_hint: 0.12, 1
             id: pb
@@ -68,10 +69,12 @@ AnchorLayout:
                         size_hint: 0.5, 1
                         text: "<"
                         id: previous_colorized
+                        on_press: app.previous_colorized()
                     Button:
                         size_hint: 0.5, 1
                         text: ">"
                         id: next_colorized
+                        on_press: app.next_colorized()
             BoxLayout:                                                  # stop & save buttons
                 size_hint: 1, 0.1
                 Button:

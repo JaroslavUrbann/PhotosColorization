@@ -18,13 +18,15 @@ class Model:
         self.last_image_set_time = time.time()
         self.model = None
         self.pspnet = None
+        self.is_colorized = False
 
     def get_last_grayscale(self):
         if self.grayscale_images:
             return self.grayscale_images[-1]
 
     def get_last_colorized(self):
-        if self.colorized_images:
+        if self.colorized_images and self.is_colorized:
+            self.is_colorized = False
             return self.colorized_images[-1]
 
     def get_progress(self):
@@ -73,12 +75,19 @@ class Model:
             print(segmentation.shape)
             y = self.model.predict([l, segmentation])
             a, b = np.split(y[0], [1], 2)  # možná líp?
-            l = l[:, :, 0] * 100
+            print(b.shape)
+            print(a.shape)
+            l = l[0, :, :, 0] * 100
             a = (a[:, :, 0] + 1) * 255 / 2 - 127
             b = (b[:, :, 0] + 1) * 255 / 2 - 128
-            color_img = np.zeros((img.size[1], img.size[0], 3))
+            color_img = np.zeros((l.shape[0], l.shape[1], 3))
+            color_img[:, :, 0] = l
+            color_img[:, :, 1] = a
+            color_img[:, :, 2] = b
             color_img = Image.fromarray((lab2rgb(color_img)*255).astype('uint8'))
             self.colorized_images.append(color_img.resize(self.grayscale_images[i].size))
+            self.is_colorized = True
+            print("done")
 
     def img2l(self, img):
         img = rgb2lab(img)

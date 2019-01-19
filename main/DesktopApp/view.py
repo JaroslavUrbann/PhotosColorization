@@ -4,6 +4,7 @@ from kivy.properties import ObjectProperty
 from kivy.uix.floatlayout import FloatLayout
 from kivy.core.image import Image as CoreImage
 from kivy.uix.popup import Popup
+from threading import Thread
 import controller
 import time
 from PIL import Image
@@ -33,12 +34,53 @@ class PhotosColorizationApp(App):
     grayscale_index = 0
     colorized_index = 0
     popup = None
-    is_loaded = False
     is_working = False
+
+    timer_period = 45
+    timer_break = False
 
     def build(self):
         Window.bind(on_dropfile=self.on_drop_file)
         self.update_buttons()
+
+    def start_timer(self):
+        start = 0
+        length = 1000
+        start_time = time.time()
+        self.timer_break = False
+        if self.timer_period == 0:
+            try:
+                with open("t.txt", "r") as t:
+                    self.timer_period = int(str(t.readline()))
+            except:
+                self.timer_period = 45
+        while True:
+            if self.root.ids.pb.value < start + length:
+                self.root.ids.pb.value += 1
+
+            if self.Controller.is_colorized() or self.timer_break:
+                # finishes up the progressbar if it is still not finished and then resets it
+                while self.root.ids.pb.value < start + length:
+                    self.root.ids.pb.value += 1
+                    time.sleep(1 / (length + start - self.root.ids.pb.value))
+                self.root.ids.pb.value = start
+
+                if not self.timer_break:
+                    self.timer_period = time.time() - start_time
+                    with open("t.txt", "w") as t:
+                        print("wrote")
+                        t.write(str(self.timer_period))
+                    self.colorized_images.append(self.Controller.get_last_grayscale())
+                    self.colorized_index = len(self.colorized_images) - 1
+                    self.colorized_images[self.colorized_index].seek(0)
+                    self.root.ids.colorized_img.texture = CoreImage(self.colorized_images[self.colorized_index],
+                                                                    ext='jpg').texture
+                    self.update_buttons()
+                if self.timer_break or len(self.colorized_images) >= len(self.grayscale_images):
+                    print("breaks")
+                    self.is_working = False
+                    return
+            time.sleep(self.timer_period / length)
 
     def on_drop_file(self, window, file_path):
         self.upload_images(str(file_path, 'UTF-8'))
@@ -58,13 +100,13 @@ class PhotosColorizationApp(App):
                 if extension == ".jpg" or extension == ".png":
                     image_paths.append(path)
             for p in image_paths:
-                self.is_loaded, is_replaced = self.Controller.set_image_paths(p)
-                if self.is_loaded:
+                is_loaded, is_replaced = self.Controller.set_image_paths(p)
+                if is_loaded:
                     if is_replaced:
                         self.grayscale_images = []
                     self.grayscale_images.append(self.Controller.get_last_grayscale())
-                    self.grayscale_images[0].seek(0)
                     self.grayscale_index = 0
+                    self.grayscale_images[self.colorized_index].seek(0)
                     self.root.ids.grayscale_img.texture = CoreImage(self.grayscale_images[self.grayscale_index],
                                                                 ext='jpg').texture
             self.update_buttons()
@@ -83,13 +125,22 @@ class PhotosColorizationApp(App):
         self.root.ids.previous_grayscale.disabled = self.grayscale_index < 1
         self.root.ids.next_colorized.disabled = len(self.colorized_images) <= self.colorized_index + 1
         self.root.ids.previous_colorized.disabled = self.colorized_index < 1
-        self.root.ids.start.disabled = not self.is_loaded and self.is_working
+        self.root.ids.start.disabled = not bool(self.grayscale_images) or self.is_working
         self.root.ids.load.disabled = self.is_working
         self.root.ids.save.disabled = len(self.colorized_images) == 0
         self.root.ids.save_all.disabled = len(self.colorized_images) == 0
 
+
+
     def start(self):
-        pass
+        self.is_working = True
+        self.update_buttons()
+        timer = Thread(target=self.start_timer)
+        timer.daemon = True
+        timer.start()
+        prediction = Thread(target=self.Controller.start())
+        prediction.daemon = True
+        prediction.start()
 
     def save(self):
         pass
