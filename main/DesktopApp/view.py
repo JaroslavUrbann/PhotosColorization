@@ -5,6 +5,8 @@ from kivy.uix.floatlayout import FloatLayout
 from kivy.core.image import Image as CoreImage
 from kivy.uix.popup import Popup
 from threading import Thread
+from kivy.clock import Clock, mainthread
+import multiprocessing
 import controller
 import time
 from PIL import Image
@@ -44,6 +46,7 @@ class PhotosColorizationApp(App):
         self.update_buttons()
 
     def start_timer(self):
+        print("nothing to see here:)")
         start = 0
         length = 1000
         start_time = time.time()
@@ -62,7 +65,7 @@ class PhotosColorizationApp(App):
                 # finishes up the progressbar if it is still not finished and then resets it
                 while self.root.ids.pb.value < start + length:
                     self.root.ids.pb.value += 1
-                    time.sleep(1 / (length + start - self.root.ids.pb.value))
+                    time.sleep(1 / (1 + length + start - self.root.ids.pb.value))
                 self.root.ids.pb.value = start
 
                 if not self.timer_break:
@@ -70,17 +73,22 @@ class PhotosColorizationApp(App):
                     with open("t.txt", "w") as t:
                         print("wrote")
                         t.write(str(self.timer_period))
-                    self.colorized_images.append(self.Controller.get_last_grayscale())
+                    self.colorized_images.append(self.Controller.get_last_colorized())
                     self.colorized_index = len(self.colorized_images) - 1
                     self.colorized_images[self.colorized_index].seek(0)
-                    self.root.ids.colorized_img.texture = CoreImage(self.colorized_images[self.colorized_index],
-                                                                    ext='jpg').texture
+                    self.update_colorized_gallery()
                     self.update_buttons()
                 if self.timer_break or len(self.colorized_images) >= len(self.grayscale_images):
                     print("breaks")
                     self.is_working = False
                     return
             time.sleep(self.timer_period / length)
+
+    @mainthread
+    def update_colorized_gallery(self):
+        print(len(self.colorized_images))
+        self.root.ids.colorized_img.texture = CoreImage(self.colorized_images[self.colorized_index],
+                                                                    ext='jpg').texture
 
     def on_drop_file(self, window, file_path):
         self.upload_images(str(file_path, 'UTF-8'))
@@ -132,15 +140,20 @@ class PhotosColorizationApp(App):
 
 
 
+    def placeholder(self):
+        print("predicting on its way")
+        self.Controller.start()
+
     def start(self):
         self.is_working = True
         self.update_buttons()
         timer = Thread(target=self.start_timer)
         timer.daemon = True
         timer.start()
-        prediction = Thread(target=self.Controller.start())
+        prediction = Thread(target=self.placeholder())
         prediction.daemon = True
         prediction.start()
+        print("I started them")
 
     def save(self):
         pass
