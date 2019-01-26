@@ -6,10 +6,8 @@ from kivy.core.image import Image as CoreImage
 from kivy.uix.popup import Popup
 from threading import Thread
 from kivy.clock import Clock, mainthread
-import multiprocessing
 import controller
 import time
-from PIL import Image
 import os
 from glob import glob
 Window.size = (1024, 576)
@@ -22,7 +20,6 @@ class LoadDialog(FloatLayout):
 
 class SaveDialog(FloatLayout):
     save = ObjectProperty(None)
-    text_input = ObjectProperty(None)
     cancel = ObjectProperty(None)
 
 
@@ -46,7 +43,6 @@ class PhotosColorizationApp(App):
         self.update_buttons()
 
     def start_timer(self):
-        print("nothing to see here:)")
         start = 0
         length = 1000
         start_time = time.time()
@@ -70,6 +66,7 @@ class PhotosColorizationApp(App):
 
                 if not self.timer_break:
                     self.timer_period = time.time() - start_time
+                    print(self.timer_period)
                     with open("t.txt", "w") as t:
                         print("wrote")
                         t.write(str(self.timer_period))
@@ -81,6 +78,7 @@ class PhotosColorizationApp(App):
                 if self.timer_break or len(self.colorized_images) >= len(self.grayscale_images):
                     print("breaks")
                     self.is_working = False
+                    self.update_buttons()
                     return
             time.sleep(self.timer_period / length)
 
@@ -93,7 +91,7 @@ class PhotosColorizationApp(App):
     def on_drop_file(self, window, file_path):
         self.upload_images(str(file_path, 'UTF-8'))
 
-    def load(self, path, file_path):
+    def load(self, file_path):
         self.upload_images(file_path[0])
         self.dismiss_popup()
 
@@ -114,7 +112,7 @@ class PhotosColorizationApp(App):
                         self.grayscale_images = []
                     self.grayscale_images.append(self.Controller.get_last_grayscale())
                     self.grayscale_index = 0
-                    self.grayscale_images[self.colorized_index].seek(0)
+                    self.grayscale_images[self.grayscale_index].seek(0)
                     self.root.ids.grayscale_img.texture = CoreImage(self.grayscale_images[self.grayscale_index],
                                                                 ext='jpg').texture
             self.update_buttons()
@@ -124,9 +122,18 @@ class PhotosColorizationApp(App):
 
     def show_load(self):
         content = LoadDialog(load=self.load, cancel=self.dismiss_popup)
-        self.popup = Popup(title="Load file", content=content, size_hint=(0.9, 0.9))
+        self.popup = Popup(title="Load image(s)", content=content, size_hint=(0.9, 0.9))
         self.popup.open()
-        self.root.ids.grayscale_img.source = "assets/d.jpg"
+
+    def show_save(self):
+        content = SaveDialog(save=self.save, cancel=self.dismiss_popup)
+        self.popup = Popup(title="Save image", content=content, size_hint=(0.9, 0.9))
+        self.popup.open()
+
+    def show_save_all(self):
+        content = SaveDialog(save=self.save_all, cancel=self.dismiss_popup)
+        self.popup = Popup(title="Save images", content=content, size_hint=(0.9, 0.9))
+        self.popup.open()
 
     def update_buttons(self):
         self.root.ids.next_grayscale.disabled = len(self.grayscale_images) <= self.grayscale_index + 1
@@ -138,37 +145,32 @@ class PhotosColorizationApp(App):
         self.root.ids.save.disabled = len(self.colorized_images) == 0
         self.root.ids.save_all.disabled = len(self.colorized_images) == 0
 
-
-
-    def placeholder(self):
-        print("predicting on its way")
-        self.Controller.start()
-
     def start(self):
         self.is_working = True
+        self.colorized_images = []
+        self.colorized_index = 0
         self.update_buttons()
         timer = Thread(target=self.start_timer)
         timer.daemon = True
         timer.start()
-        prediction = Thread(target=self.placeholder())
+        prediction = Thread(target=self.Controller.start)
         prediction.daemon = True
         prediction.start()
         print("I started them")
 
-    def save(self):
-        pass
+    def save(self, path):
+        self.Controller.save(path, self.colorized_index)
+        self.dismiss_popup()
 
-    def save_all(self):
-        pass
+    def save_all(self, path):
+        self.Controller.save_all(path)
+        self.dismiss_popup()
 
     def cancel(self):
         pass
 
     def next_grayscale(self):
-        print("next!!!!")
-        print(len(self.grayscale_images))
         self.grayscale_index += 1
-        print(self.grayscale_index)
         self.update_buttons()
         self.grayscale_images[self.grayscale_index].seek(0)
         self.root.ids.grayscale_img.texture = CoreImage(self.grayscale_images[self.grayscale_index], ext='jpg').texture
@@ -182,13 +184,13 @@ class PhotosColorizationApp(App):
     def next_colorized(self):
         self.colorized_index += 1
         self.update_buttons()
-        self.grayscale_images[self.grayscale_index].seek(0)
+        self.colorized_images[self.colorized_index].seek(0)
         self.root.ids.colorized_img.texture = CoreImage(self.colorized_images[self.colorized_index], ext='jpg').texture
 
     def previous_colorized(self):
         self.colorized_index -= 1
         self.update_buttons()
-        self.grayscale_images[self.grayscale_index].seek(0)
+        self.colorized_images[self.colorized_index].seek(0)
         self.root.ids.colorized_img.texture = CoreImage(self.colorized_images[self.colorized_index], ext='jpg').texture
 
 

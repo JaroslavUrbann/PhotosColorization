@@ -38,11 +38,11 @@ AnchorLayout:
                     size_hint: 0.5, 1
                     text: "start"
                     on_press: app.start()
-        ProgressBar:                                                     # middle arrow
+        ProgressBar:                                                     # Progress bar
             size_hint: 0.12, 1
             id: pb
             max: 1000
-            value: 300
+            value: 0
             canvas:
                 BorderImage:
                     border: [int(min(self.width * (self.value / float(self.max)) if self.max else 0, 12))] * 4
@@ -75,16 +75,18 @@ AnchorLayout:
                         text: ">"
                         id: next_colorized
                         on_press: app.next_colorized()
-            BoxLayout:                                                  # stop & save buttons
+            BoxLayout:                                                  # save & save all buttons
                 size_hint: 1, 0.1
                 Button:
                     id: save
                     size_hint: 0.5, 1
                     text: "save"
+                    on_release: app.show_save()
                 Button:
                     id: save_all
                     size_hint: 0.5, 1
                     text: "save all"
+                    on_release: app.show_save_all()
 
 <LoadDialog>:
     BoxLayout:
@@ -104,4 +106,23 @@ AnchorLayout:
 
             Button:
                 text: "Load"
-                on_release: root.load(filechooser.path, filechooser.selection)
+                on_release: root.load(filechooser.selection)
+
+<SaveDialog>:
+    BoxLayout:
+        size: root.size
+        pos: root.pos
+        orientation: "vertical"
+        FileChooserListView:
+            id: filechooser
+
+        BoxLayout:
+            size_hint_y: None
+            height: 30
+            Button:
+                text: "Cancel"
+                on_release: root.cancel()
+
+            Button:
+                text: "Save"
+                on_release: root.save(filechooser.path)

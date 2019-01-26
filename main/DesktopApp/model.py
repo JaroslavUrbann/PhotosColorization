@@ -29,19 +29,29 @@ class Model:
             self.is_colorized = False
             return self.colorized_images[-1]
 
-    def get_progress(self):
-        pass
+    def save(self, path, index):
+        self.colorized_images[index].save(os.path.join(path, self.colorized_images[index].filename))
+
+    def save_all(self, path):
+        for i in range(len(self.colorized_images)):
+            print(os.path.join(path, self.colorized_images[i].filename))
+            self.colorized_images[i].save(os.path.join(path, self.colorized_images[i].filename))
 
     def set_image_paths(self, path: str):
         replaced = False
         try:
             img = Image.open(path)
+            filename = img.filename
             img = img.convert("RGB")
+            # loses filename attribute for some reason
+            img.filename = filename
         except:
+            print("couldn't open")
             return False, False
         if time.time() - self.last_image_set_time > 0.5:
             self.grayscale_images = []
             replaced = True
+        print(img.filename)
         self.grayscale_images.append(img)
         self.last_image_set_time = time.time()
         return True, replaced
@@ -66,17 +76,12 @@ class Model:
         if not self.model:
             self.model = load_model("FinalModel.hdf5")
             self.model._make_predict_function()
-
         for i in range(len(self.grayscale_images)):
             img = self.resize_img(self.grayscale_images[i])
             l = self.img2l(img)
             segmentation = self.predict_segmentation(img, (img.size[1] / 8, img.size[0] / 8))
-            print(l.shape)
-            print(segmentation.shape)
             y = self.model.predict([l, segmentation])
             a, b = np.split(y[0], [1], 2)  # možná líp?
-            print(b.shape)
-            print(a.shape)
             l = l[0, :, :, 0] * 100
             a = (a[:, :, 0] + 1) * 255 / 2 - 127
             b = (b[:, :, 0] + 1) * 255 / 2 - 128
@@ -85,7 +90,11 @@ class Model:
             color_img[:, :, 1] = a
             color_img[:, :, 2] = b
             color_img = Image.fromarray((lab2rgb(color_img)*255).astype('uint8'))
-            self.colorized_images.append(color_img.resize(self.grayscale_images[i].size))
+            color_img = color_img.resize(self.grayscale_images[i].size)
+            # changes images filename to the coresponding grayscale images filename and adds _colorized - for saving image later
+            color_img.filename = os.path.splitext(os.path.basename(self.grayscale_images[i].filename))[0] + "_colorized.jpg"
+            self.colorized_images.append(color_img)
+            print(self.colorized_images[i].filename)
             self.is_colorized = True
             print("done")
 
@@ -104,9 +113,8 @@ class Model:
         left = int((input_size - img.size[0]) / 2)
         top = int((input_size - img.size[1]) / 2)
         new_img.paste(img, (left, top))
-        new_img = np.array(new_img) - np.array([[[123.68, 116.779, 103.939]]])
-        bgr_img = new_img[:, :, ::-1]
-        segmented_img = self.pspnet.predict(np.expand_dims(bgr_img, axis=0))[:, top:top+img.size[1], left:left+img.size[0], :]
+        new_img = np.array(new_img) - np.array([[[128, 128, 128]]])
+        segmented_img = self.pspnet.predict(np.expand_dims(new_img, axis=0))[:, top:top+img.size[1], left:left+img.size[0], :]
         if output_shape != (input_size, input_size):
             segmented_img = resize(segmented_img,
                                    (1, output_shape[0], output_shape[1], 150),
@@ -141,9 +149,9 @@ class Interp(layers.Layer):
 
 if __name__ == "__main__":
     xd = Model()
-    print(xd.set_image_paths("C://Users//Jaroslav Urban//Desktop//a.jpg"))
-    print(xd.set_image_paths("C://Users//Jaroslav Urban//Desktop//xd.jpg"))
-    tim = time.time()
-    xd.start_conversion()
-    print(time.time() - tim)
-    print(len(xd.colorized_images))
+    print(xd.set_image_paths("C://Users//Jaroslav Urban//Desktop//better.png"))
+    # print(xd.set_image_paths("C://Users//Jaroslav Urban//Desktop//rsj.png"))
+    # tim = time.time()
+    # xd.start_conversion()
+    # print(time.time() - tim)
+    # print(len(xd.colorized_images))

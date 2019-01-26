@@ -30,11 +30,11 @@ class Controller:
     def start(self):
         self.model.start_conversion()
 
-    def save(self):
-        pass
+    def save(self, path, index):
+        self.model.save(path, index)
 
-    def save_all(self):
-        pass
+    def save_all(self, path):
+        self.model.save_all(path)
 
     def cancel(self):
         pass
