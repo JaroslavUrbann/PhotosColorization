@@ -24,17 +24,20 @@ class Controller:
         img_io.seek(0)
         return img_io
 
+    def get_colorized_name(self, index):
+        return self.model.get_colorized_name(index)
+
     def is_colorized(self):
         return bool(self.model.is_colorized)
 
     def start(self):
         self.model.start_conversion()
 
-    def save(self, path, index):
-        self.model.save(path, index)
+    def save(self, path, name, index):
+        return self.model.save(path, name, index)
 
     def save_all(self, path):
-        self.model.save_all(path)
+        return self.model.save_all(path)
 
     def cancel(self):
         pass

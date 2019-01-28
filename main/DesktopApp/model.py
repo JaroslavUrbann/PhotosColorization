@@ -29,13 +29,34 @@ class Model:
             self.is_colorized = False
             return self.colorized_images[-1]
 
-    def save(self, path, index):
-        self.colorized_images[index].save(os.path.join(path, self.colorized_images[index].filename))
+    def get_colorized_name(self, index):
+        return self.colorized_images[index].filename
+
+    def save(self, path, name, index):
+        if name:
+            try:
+                self.colorized_images[index].save(os.path.join(path, name), format="jpeg")
+            except Exception as e:
+                print(e)
+                try:
+                    self.colorized_images[index].save(os.path.join(path, self.colorized_images[index].filename), format="jpeg")
+                except:
+                    return False
+        else:
+            try:
+                self.colorized_images[index].save(os.path.join(path, self.colorized_images[index].filename), format="jpeg")
+            except:
+                return False
+        return True
 
     def save_all(self, path):
-        for i in range(len(self.colorized_images)):
-            print(os.path.join(path, self.colorized_images[i].filename))
-            self.colorized_images[i].save(os.path.join(path, self.colorized_images[i].filename))
+        try:
+            for i in range(len(self.colorized_images)):
+                print(os.path.join(path, self.colorized_images[i].filename))
+                self.colorized_images[i].save(os.path.join(path, self.colorized_images[i].filename), format="jpeg")
+        except:
+            return False
+        return True
 
     def set_image_paths(self, path: str):
         replaced = False

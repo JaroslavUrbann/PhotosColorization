@@ -13,12 +13,21 @@ from glob import glob
 Window.size = (1024, 576)
 
 
+class ErrorDialog(FloatLayout):
+    ok = ObjectProperty(None)
+
+
 class LoadDialog(FloatLayout):
     load = ObjectProperty(None)
     cancel = ObjectProperty(None)
 
 
 class SaveDialog(FloatLayout):
+    save = ObjectProperty(None)
+    cancel = ObjectProperty(None)
+
+
+class SaveAllDialog(FloatLayout):
     save = ObjectProperty(None)
     cancel = ObjectProperty(None)
 
@@ -32,7 +41,10 @@ class PhotosColorizationApp(App):
     colorized_images = []
     grayscale_index = 0
     colorized_index = 0
+    load_path = "/"
+    save_path = "/"
     popup = None
+    error_popup = None
     is_working = False
 
     timer_period = 45
@@ -91,9 +103,17 @@ class PhotosColorizationApp(App):
     def on_drop_file(self, window, file_path):
         self.upload_images(str(file_path, 'UTF-8'))
 
-    def load(self, file_path):
-        self.upload_images(file_path[0])
-        self.dismiss_popup()
+    def load(self, file_paths, load_path):
+        self.load_path = load_path
+        # kivi sometimes counts in the folder you're in
+        if len(file_paths) > 1:
+            for path in file_paths[1:]:
+                if file_paths[0] == os.path.dirname(path):
+                    file_paths = file_paths[1:]
+                    break
+        for path in file_paths:
+            self.upload_images(path)
+            self.dismiss_popup()
 
     def upload_images(self, path):
         if not self.is_working:
@@ -120,18 +140,27 @@ class PhotosColorizationApp(App):
     def dismiss_popup(self):
         self.popup.dismiss()
 
+    def dismiss_error_popup(self):
+        self.error_popup.dismiss()
+
     def show_load(self):
         content = LoadDialog(load=self.load, cancel=self.dismiss_popup)
         self.popup = Popup(title="Load image(s)", content=content, size_hint=(0.9, 0.9))
         self.popup.open()
 
+    def show_error(self):
+        content = ErrorDialog(ok=self.dismiss_error_popup)
+        self.error_popup = Popup(title="Error", content=content, size_hint=(0.3, 0.3))
+        self.error_popup.open()
+
     def show_save(self):
         content = SaveDialog(save=self.save, cancel=self.dismiss_popup)
+        content.ids.text_input.text = self.Controller.get_colorized_name(self.colorized_index)
         self.popup = Popup(title="Save image", content=content, size_hint=(0.9, 0.9))
         self.popup.open()
 
     def show_save_all(self):
-        content = SaveDialog(save=self.save_all, cancel=self.dismiss_popup)
+        content = SaveAllDialog(save=self.save_all, cancel=self.dismiss_popup)
         self.popup = Popup(title="Save images", content=content, size_hint=(0.9, 0.9))
         self.popup.open()
 
@@ -158,13 +187,19 @@ class PhotosColorizationApp(App):
         prediction.start()
         print("I started them")
 
-    def save(self, path):
-        self.Controller.save(path, self.colorized_index)
-        self.dismiss_popup()
+    def save(self, path, name):
+        print(path)
+        self.save_path = path
+        if self.Controller.save(path, name, self.colorized_index):
+            self.dismiss_popup()
+        else:
+            self.show_error()
 
     def save_all(self, path):
-        self.Controller.save_all(path)
-        self.dismiss_popup()
+        if self.Controller.save_all(path):
+            self.dismiss_popup()
+        else:
+            self.show_error()
 
     def cancel(self):
         pass

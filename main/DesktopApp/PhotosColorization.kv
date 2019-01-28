@@ -93,9 +93,12 @@ AnchorLayout:
         size: root.size
         pos: root.pos
         orientation: "vertical"
-        FileChooserListView:
+        FileChooserIconView:
             id: filechooser
             dirselect: True
+            multiselect: True
+            path: app.load_path
+            on_submit: root.load()
 
         BoxLayout:
             size_hint_y: None
@@ -106,15 +109,43 @@ AnchorLayout:
 
             Button:
                 text: "Load"
-                on_release: root.load(filechooser.selection)
+                on_release: root.load(filechooser.selection, filechooser.path)
 
 <SaveDialog>:
+    text_input: text_input
     BoxLayout:
         size: root.size
         pos: root.pos
         orientation: "vertical"
-        FileChooserListView:
+        FileChooserIconView:
             id: filechooser
+            path: app.save_path
+
+        TextInput:
+            id: text_input
+            size_hint_y: None
+            height: 30
+            multiline: False
+
+        BoxLayout:
+            size_hint_y: None
+            height: 30
+            Button:
+                text: "Cancel"
+                on_release: root.cancel()
+
+            Button:
+                text: "Save"
+                on_release: root.save(filechooser.path, text_input.text)
+
+<SaveAllDialog>:
+    BoxLayout:
+        size: root.size
+        pos: root.pos
+        orientation: "vertical"
+        FileChooserIconView:
+            id: filechooser
+            path: app.save_path
 
         BoxLayout:
             size_hint_y: None
@@ -126,3 +157,14 @@ AnchorLayout:
             Button:
                 text: "Save"
                 on_release: root.save(filechooser.path)
+
+<ErrorDialog>
+    BoxLayout:
+        size: root.size
+        pos: root.pos
+        orientation: "vertical"
+        Label:
+            text: "Permission error"
+        Button:
+            text: "OK"
+            on_release: root.ok()
