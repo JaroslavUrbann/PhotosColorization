@@ -10,8 +10,11 @@ AnchorLayout:
             orientation: "vertical"
             Image:                                            # grayscale image - can't anchor on bottom for some reason
                 id: grayscale_img
-                size_hint: 1, 0.85
+                size_hint: 1, 0.80
                 source: "assets/b.jpg"
+            Label:
+                size_hint: 1, 0.05
+                id: grayscale_counter
             AnchorLayout:                                                  # left & right gallery buttons
                 size_hint: 1, 0.05
                 BoxLayout:
@@ -38,29 +41,50 @@ AnchorLayout:
                     size_hint: 0.5, 1
                     text: "start"
                     on_press: app.start()
-        ProgressBar:                                                     # Progress bar
+        BoxLayout:
+            orientation: "vertical"
             size_hint: 0.12, 1
-            id: pb
-            max: 1000
-            value: 0
-            canvas:
-                BorderImage:
-                    border: [int(min(self.width * (self.value / float(self.max)) if self.max else 0, 12))] * 4
-                    pos: self.x, self.center_y - 12
-                    size: self.width * (self.value / float(self.max)) if self.max else 0, self.width * 473/512
-                    source: 'assets/green.png'
-                BorderImage:
-                    border: (0, 0, 0, 0)
-                    pos: self.x, self.center_y - 12
-                    size: self.width, self.width * 473/512
-                    source: 'assets/tr.png'
+            BoxLayout:
+                size_hint: 1, 0.35
+            ProgressBar:                                                     # Progress bar
+                size_hint: 1, 0.2
+                id: pb
+                max: 1000
+                value: 0
+                canvas:
+                    BorderImage:
+                        border: (0, 0, 0, 0)
+                        pos: self.x, self.y
+                        size: self.width, self.width * 473/512
+                        source: 'assets/gray.jpg'
+                    BorderImage:
+                        border: [int(min(self.width * (self.value / float(self.max)) if self.max else 0, 12))] * 4
+                        pos: self.x, self.y
+                        size: self.width * (self.value / float(self.max)) if self.max else 0, self.width * 473/512
+                        source: 'assets/green.png'
+                    BorderImage:
+                        border: (0, 0, 0, 0)
+                        pos: self.x, self.y
+                        size: self.width, self.width * 473/512
+                        source: 'assets/tr.png'
+            Label:
+                size_hint: 1, 0.05
+                id: done_counter
+            Button:
+                size_hint: 1, 0.1
+                text: "break"
+            BoxLayout:
+                size_hint: 1, 0.4
         BoxLayout:                                                  # right side
             size_hint: 0.44, 1
             orientation: "vertical"
             Image:                                             # colored image - can't anchor on bottom for some reason
                 id: colorized_img
-                size_hint: 1, 0.85
+                size_hint: 1, 0.80
                 source: "assets/d.jpg"
+            Label:
+                size_hint: 1, 0.05
+                id: colorized_counter
             AnchorLayout:                                                  # left & right gallery buttons
                 size_hint: 1, 0.05
                 BoxLayout:

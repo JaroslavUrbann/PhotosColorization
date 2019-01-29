@@ -173,6 +173,9 @@ class PhotosColorizationApp(App):
         self.root.ids.load.disabled = self.is_working
         self.root.ids.save.disabled = len(self.colorized_images) == 0
         self.root.ids.save_all.disabled = len(self.colorized_images) == 0
+        self.root.ids.grayscale_counter.text = (str(self.grayscale_index + 1) if self.grayscale_images else "0") + " / " + str(len(self.grayscale_images))
+        self.root.ids.colorized_counter.text = (str(self.colorized_index) if self.colorized_images else "0") + " / " + str(len(self.colorized_images))
+        self.root.ids.done_counter.text = str(len(self.colorized_images)) + " / " + str(len(self.grayscale_images))
 
     def start(self):
         self.is_working = True
