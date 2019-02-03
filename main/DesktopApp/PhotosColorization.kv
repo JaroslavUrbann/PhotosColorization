@@ -72,7 +72,9 @@ AnchorLayout:
                 id: done_counter
             Button:
                 size_hint: 1, 0.1
-                text: "break"
+                text: "cancel"
+                id: cancel
+                on_release: app.cancel()
             BoxLayout:
                 size_hint: 1, 0.4
         BoxLayout:                                                  # right side

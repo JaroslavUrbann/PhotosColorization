@@ -40,4 +40,4 @@ class Controller:
         return self.model.save_all(path)
 
     def cancel(self):
-        pass
+        self.model.cancel = True

@@ -45,10 +45,8 @@ class PhotosColorizationApp(App):
     save_path = "/"
     popup = None
     error_popup = None
-    is_working = False
-
-    timer_period = 45
-    timer_break = False
+    prediction_thread = None
+    timer_period = 0
 
     def build(self):
         Window.bind(on_dropfile=self.on_drop_file)
@@ -58,45 +56,43 @@ class PhotosColorizationApp(App):
         start = 0
         length = 1000
         start_time = time.time()
-        self.timer_break = False
         if self.timer_period == 0:
             try:
                 with open("t.txt", "r") as t:
                     self.timer_period = int(str(t.readline()))
             except:
-                self.timer_period = 45
+                self.timer_period = 70
         while True:
             if self.root.ids.pb.value < start + length:
                 self.root.ids.pb.value += 1
 
-            if self.Controller.is_colorized() or self.timer_break:
-                # finishes up the progressbar if it is still not finished and then resets it
-                while self.root.ids.pb.value < start + length:
-                    self.root.ids.pb.value += 1
-                    time.sleep(1 / (1 + length + start - self.root.ids.pb.value))
-                self.root.ids.pb.value = start
-
-                if not self.timer_break:
-                    self.timer_period = time.time() - start_time
-                    print(self.timer_period)
-                    with open("t.txt", "w") as t:
-                        print("wrote")
-                        t.write(str(self.timer_period))
+            if self.Controller.is_colorized() or not self.prediction_thread.is_alive():
+                if self.Controller.is_colorized():
                     self.colorized_images.append(self.Controller.get_last_colorized())
                     self.colorized_index = len(self.colorized_images) - 1
                     self.colorized_images[self.colorized_index].seek(0)
                     self.update_colorized_gallery()
                     self.update_buttons()
-                if self.timer_break or len(self.colorized_images) >= len(self.grayscale_images):
+                    self.timer_period = (time.time() - start_time) * 0.75 + self.timer_period * 0.25
+                    print(self.timer_period)
+                    with open("t.txt", "w") as t:
+                        print("wrote")
+                        t.write(str(self.timer_period))
+                # finishes up the progressbar if it is still not finished and then resets it
+                while self.root.ids.pb.value < start + length:
+                    self.root.ids.pb.value += 1
+                    time.sleep(0.5 / (.1 + length + start - self.root.ids.pb.value))
+                self.root.ids.pb.value = start
+
+                if not self.prediction_thread.is_alive() or len(self.colorized_images) >= len(self.grayscale_images):
                     print("breaks")
-                    self.is_working = False
                     self.update_buttons()
                     return
+                start_time = time.time()
             time.sleep(self.timer_period / length)
 
     @mainthread
     def update_colorized_gallery(self):
-        print(len(self.colorized_images))
         self.root.ids.colorized_img.texture = CoreImage(self.colorized_images[self.colorized_index],
                                                                     ext='jpg').texture
 
@@ -116,7 +112,7 @@ class PhotosColorizationApp(App):
             self.dismiss_popup()
 
     def upload_images(self, path):
-        if not self.is_working:
+        if not (self.prediction_thread.is_alive() if self.prediction_thread else False):
             image_paths = []
             if os.path.isdir(path):
                 image_paths.extend(glob(os.path.join(path, "*.jpg")))
@@ -169,25 +165,25 @@ class PhotosColorizationApp(App):
         self.root.ids.previous_grayscale.disabled = self.grayscale_index < 1
         self.root.ids.next_colorized.disabled = len(self.colorized_images) <= self.colorized_index + 1
         self.root.ids.previous_colorized.disabled = self.colorized_index < 1
-        self.root.ids.start.disabled = not bool(self.grayscale_images) or self.is_working
-        self.root.ids.load.disabled = self.is_working
+        self.root.ids.start.disabled = not bool(self.grayscale_images) or (self.prediction_thread.is_alive() if self.prediction_thread else False)
+        self.root.ids.load.disabled = self.prediction_thread.is_alive() if self.prediction_thread else False
         self.root.ids.save.disabled = len(self.colorized_images) == 0
         self.root.ids.save_all.disabled = len(self.colorized_images) == 0
         self.root.ids.grayscale_counter.text = (str(self.grayscale_index + 1) if self.grayscale_images else "0") + " / " + str(len(self.grayscale_images))
-        self.root.ids.colorized_counter.text = (str(self.colorized_index) if self.colorized_images else "0") + " / " + str(len(self.colorized_images))
+        self.root.ids.colorized_counter.text = (str(self.colorized_index + 1) if self.colorized_images else "0") + " / " + str(len(self.colorized_images))
         self.root.ids.done_counter.text = str(len(self.colorized_images)) + " / " + str(len(self.grayscale_images))
+        self.root.ids.cancel.disabled = not (self.prediction_thread.is_alive() if self.prediction_thread else False)
 
     def start(self):
-        self.is_working = True
         self.colorized_images = []
         self.colorized_index = 0
-        self.update_buttons()
+        self.prediction_thread = Thread(target=self.Controller.start)
+        self.prediction_thread.daemon = True
+        self.prediction_thread.start()
         timer = Thread(target=self.start_timer)
         timer.daemon = True
         timer.start()
-        prediction = Thread(target=self.Controller.start)
-        prediction.daemon = True
-        prediction.start()
+        self.update_buttons()
         print("I started them")
 
     def save(self, path, name):
@@ -205,7 +201,8 @@ class PhotosColorizationApp(App):
             self.show_error()
 
     def cancel(self):
-        pass
+        self.Controller.cancel()
+        self.update_buttons()
 
     def next_grayscale(self):
         self.grayscale_index += 1

@@ -14,11 +14,11 @@ class Model:
     def __init__(self):
         self.grayscale_images = []
         self.colorized_images = []
-        self.is_working = False
         self.last_image_set_time = time.time()
         self.model = None
         self.pspnet = None
         self.is_colorized = False
+        self.cancel = False
 
     def get_last_grayscale(self):
         if self.grayscale_images:
@@ -82,26 +82,36 @@ class Model:
         if w * h > 1920 * 1080:
             w = 1920 * 1080 / img.size[1]
             h = 1920 * 1080 / img.size[0]
-        while w % 8 != 0:
+        while int(w) % 8 != 0:
             w += 1
-        while h % 8 != 0:
+        while int(h) % 8 != 0:
             h += 1
-        return img.resize((w, h)).convert("L").convert("RGB")
+        return img.resize((int(w), int(h))).convert("L").convert("RGB")
 
     def start_conversion(self):
-        if self.is_working or not self.grayscale_images:
-            return
+        tim = time.time()
         if not self.pspnet:
             self.pspnet = load_model("pspnet.h5", custom_objects={'Interp': Interp})
             self.pspnet._make_predict_function()
+        if self.cancel:
+            return
         if not self.model:
             self.model = load_model("FinalModel.hdf5")
             self.model._make_predict_function()
-        for i in range(len(self.grayscale_images)):
-            img = self.resize_img(self.grayscale_images[i])
+        if self.cancel:
+            return
+        print("loading takes: " + str(time.time() - tim))
+        while len(self.grayscale_images) > len(self.colorized_images) and not self.cancel:
+            print("starting index n: " + str(len(self.colorized_images)))
+            tim = time.time()
+            img = self.resize_img(self.grayscale_images[len(self.colorized_images)])
             l = self.img2l(img)
             segmentation = self.predict_segmentation(img, (img.size[1] / 8, img.size[0] / 8))
+            if self.cancel:
+                return
             y = self.model.predict([l, segmentation])
+            if self.cancel:
+                return
             a, b = np.split(y[0], [1], 2)  # možná líp?
             l = l[0, :, :, 0] * 100
             a = (a[:, :, 0] + 1) * 255 / 2 - 127
@@ -111,13 +121,13 @@ class Model:
             color_img[:, :, 1] = a
             color_img[:, :, 2] = b
             color_img = Image.fromarray((lab2rgb(color_img)*255).astype('uint8'))
-            color_img = color_img.resize(self.grayscale_images[i].size)
+            color_img = color_img.resize(self.grayscale_images[len(self.colorized_images)].size)
             # changes images filename to the coresponding grayscale images filename and adds _colorized - for saving image later
-            color_img.filename = os.path.splitext(os.path.basename(self.grayscale_images[i].filename))[0] + "_colorized.jpg"
+            color_img.filename = os.path.splitext(os.path.basename(self.grayscale_images[len(self.colorized_images)].filename))[0] + "_colorized.jpg"
             self.colorized_images.append(color_img)
-            print(self.colorized_images[i].filename)
             self.is_colorized = True
-            print("done")
+            print("prediction takes: " + str(time.time() - tim))
+        print("im out")
 
     def img2l(self, img):
         img = rgb2lab(img)
@@ -136,11 +146,10 @@ class Model:
         new_img.paste(img, (left, top))
         new_img = np.array(new_img) - np.array([[[128, 128, 128]]])
         segmented_img = self.pspnet.predict(np.expand_dims(new_img, axis=0))[:, top:top+img.size[1], left:left+img.size[0], :]
-        if output_shape != (input_size, input_size):
-            segmented_img = resize(segmented_img,
-                                   (1, output_shape[0], output_shape[1], 150),
-                                   mode="constant",
-                                   preserve_range=True)
+        segmented_img = resize(segmented_img,
+                               (1, output_shape[0], output_shape[1], 150),
+                               mode="constant",
+                               preserve_range=True)
         return segmented_img
 
 
@@ -173,6 +182,6 @@ if __name__ == "__main__":
     print(xd.set_image_paths("C://Users//Jaroslav Urban//Desktop//better.png"))
     # print(xd.set_image_paths("C://Users//Jaroslav Urban//Desktop//rsj.png"))
     # tim = time.time()
-    # xd.start_conversion()
+    xd.start_conversion()
     # print(time.time() - tim)
     # print(len(xd.colorized_images))
