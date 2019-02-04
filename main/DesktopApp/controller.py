@@ -30,6 +30,9 @@ class Controller:
     def is_colorized(self):
         return bool(self.model.is_colorized)
 
+    def load_models(self):
+        self.model.load_models()
+
     def start(self):
         self.model.start_conversion()
 

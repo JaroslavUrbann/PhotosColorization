@@ -51,6 +51,9 @@ class PhotosColorizationApp(App):
     def build(self):
         Window.bind(on_dropfile=self.on_drop_file)
         self.update_buttons()
+        load_models = Thread(target=self.Controller.load_models)
+        load_models.daemon = True
+        load_models.start()
 
     def start_timer(self):
         start = 0

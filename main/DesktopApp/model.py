@@ -8,6 +8,7 @@ from skimage.transform import resize
 from keras.models import load_model
 from keras import layers
 from keras.backend import tf as ktf
+from keras import backend as K
 
 
 class Model:
@@ -88,19 +89,21 @@ class Model:
             h += 1
         return img.resize((int(w), int(h))).convert("L").convert("RGB")
 
+    def load_models(self):
+        tim = time.time()
+        pspnet = load_model("pspnet.h5", custom_objects={'Interp': Interp})
+        pspnet._make_predict_function()
+        self.pspnet = pspnet
+        model = load_model("FinalModel.hdf5")
+        model._make_predict_function()
+        self.model = model
+        print("loading takes: " + str(time.time() - tim))
+
     def start_conversion(self):
         tim = time.time()
-        if not self.pspnet:
-            self.pspnet = load_model("pspnet.h5", custom_objects={'Interp': Interp})
-            self.pspnet._make_predict_function()
-        if self.cancel:
-            return
-        if not self.model:
-            self.model = load_model("FinalModel.hdf5")
-            self.model._make_predict_function()
-        if self.cancel:
-            return
-        print("loading takes: " + str(time.time() - tim))
+        while not self.pspnet or not self.model:
+            time.sleep(1)
+        print("waiting takes: " + str(time.time() - tim))
         while len(self.grayscale_images) > len(self.colorized_images) and not self.cancel:
             print("starting index n: " + str(len(self.colorized_images)))
             tim = time.time()
@@ -179,9 +182,12 @@ class Interp(layers.Layer):
 
 if __name__ == "__main__":
     xd = Model()
-    print(xd.set_image_paths("C://Users//Jaroslav Urban//Desktop//better.png"))
+    print(xd.set_image_paths("C://Users//Jaroslav Urban//Desktop//y.png"))
     # print(xd.set_image_paths("C://Users//Jaroslav Urban//Desktop//rsj.png"))
     # tim = time.time()
+    xd.load_models()
     xd.start_conversion()
+    # K.clear_session()
+    time.sleep(3000)
     # print(time.time() - tim)
     # print(len(xd.colorized_images))
