@@ -32,3 +32,6 @@
 # # print(np.min(preds))
 # # print(np.max(preds))
 # # print('Predicted:', decode_predictions(preds, top=10))
+
+m = "one" if False else "two" if False else "three" if True else "four"
+print(m)

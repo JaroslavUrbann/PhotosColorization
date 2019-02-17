@@ -1,4 +1,10 @@
 AnchorLayout:
+    canvas.before:
+        Color:
+            rgba: 0.2, 0.2, 0.2, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
     BoxLayout:
         orientation: "horizontal"
         spacing: 10
@@ -10,10 +16,12 @@ AnchorLayout:
             orientation: "vertical"
             Image:                                            # grayscale image - can't anchor on bottom for some reason
                 id: grayscale_img
+                source: app.resource_path("assets/b.jpg")
                 size_hint: 1, 0.80
             Label:
                 size_hint: 1, 0.05
                 id: grayscale_counter
+                color: (0.443, 0.443, 0.443, 1) if root.ids.n_g.disabled and root.ids.p_g.disabled else (1, 1, 1, 1)
             AnchorLayout:                                                  # left & right gallery buttons
                 size_hint: 1, 0.05
                 BoxLayout:
@@ -21,25 +29,53 @@ AnchorLayout:
                     Button:
                         size_hint: 0.5, 1
                         text: "<"
-                        id: previous_grayscale
-                        on_press: app.previous_grayscale()
+                        background_down: ''
+                        background_normal: ''
+                        background_disabled_normal: ''
+                        background_color: (0.2, 0.2, 0.2, 1)
+                        on_press: self.background_color = (0.35, 0.35, 0.35, 1)
+                        color: (0.443, 0.443, 0.443, 1) if self.disabled else (1, 1, 1, 1)
+                        on_release: self.background_color = ((0.2, 0.2, 0.2, 1) if self.disabled else (0.2902, 0.2902, 0.2902, 1))
+                        id: p_g
+                        on_release: app.p_g()
                     Button:
                         size_hint: 0.5, 1
                         text: ">"
-                        id: next_grayscale
-                        on_press: app.next_grayscale()
+                        background_down: ''
+                        background_normal: ''
+                        background_disabled_normal: ''
+                        background_color: (0.2, 0.2, 0.2, 1)
+                        on_press: self.background_color = (0.35, 0.35, 0.35, 1)
+                        color: (0.443, 0.443, 0.443, 1) if self.disabled else (1, 1, 1, 1)
+                        on_release: self.background_color = ((0.2, 0.2, 0.2, 1) if self.disabled else (0.2902, 0.2902, 0.2902, 1))
+                        id: n_g
+                        on_release: app.n_g()
             BoxLayout:                                                  # start & upload buttons
                 size_hint: 1, 0.1
                 Button:
                     size_hint: 0.5, 1
                     id: load
                     text: "load"
+                    background_down: ''
+                    background_normal: ''
+                    background_disabled_normal: ''
+                    background_color: (0.2, 0.2, 0.2, 1)
+                    on_press: self.background_color = (0.35, 0.35, 0.35, 1)
+                    color: (0.443, 0.443, 0.443, 1) if self.disabled else (1, 1, 1, 1)
+                    on_release: self.background_color = ((0.2, 0.2, 0.2, 1) if self.disabled else (0.2902, 0.2902, 0.2902, 1))
                     on_release: app.show_load()
                 Button:
                     id: start
                     size_hint: 0.5, 1
                     text: "start"
-                    on_press: app.start()
+                    background_down: ''
+                    background_normal: ''
+                    background_disabled_normal: ''
+                    background_color: (0.2, 0.2, 0.2, 1)
+                    on_press: self.background_color = (0.35, 0.35, 0.35, 1)
+                    color: (0.443, 0.443, 0.443, 1) if self.disabled else (1, 1, 1, 1)
+                    on_release: self.background_color = ((0.2, 0.2, 0.2, 1) if self.disabled else (0.2902, 0.2902, 0.2902, 1))
+                    on_release: app.start()
         BoxLayout:
             orientation: "vertical"
             size_hint: 0.12, 1
@@ -55,24 +91,33 @@ AnchorLayout:
                         border: (0, 0, 0, 0)
                         pos: self.x, self.y
                         size: self.width, self.width * 473/512
-                        group: "a"
+                        source: app.resource_path('assets/gray.jpg')
                     BorderImage:
                         border: [int(min(self.width * (self.value / float(self.max)) if self.max else 0, 12))] * 4
                         pos: self.x, self.y
                         size: self.width * (self.value / float(self.max)) if self.max else 0, self.width * 473/512
-                        group: "b"
+                        source: app.resource_path('assets/green.png')
                     BorderImage:
                         border: (0, 0, 0, 0)
                         pos: self.x, self.y
                         size: self.width, self.width * 473/512
-                        group: "c"
+                        source: app.resource_path('assets/progress_bar.png')
             Label:
                 size_hint: 1, 0.05
                 id: done_counter
+                text: "0 / 0"
+                color: (0.443, 0.443, 0.443, 1) if self.text[4] == "0" else (1, 1, 1, 1)
             Button:
                 size_hint: 1, 0.1
                 text: "cancel"
                 id: cancel
+                background_down: ''
+                background_normal: ''
+                background_disabled_normal: ''
+                background_color: (0.2, 0.2, 0.2, 1)
+                on_press: self.background_color = (0.35, 0.35, 0.35, 1)
+                color: (0.443, 0.443, 0.443, 1) if self.disabled else (1, 1, 1, 1)
+                on_release: self.background_color = ((0.2, 0.2, 0.2, 1) if self.disabled else (0.2902, 0.2902, 0.2902, 1))
                 on_release: app.cancel()
             BoxLayout:
                 size_hint: 1, 0.4
@@ -82,9 +127,11 @@ AnchorLayout:
             Image:                                             # colored image - can't anchor on bottom for some reason
                 id: colorized_img
                 size_hint: 1, 0.80
+                source: app.resource_path("assets/d.jpg")
             Label:
                 size_hint: 1, 0.05
                 id: colorized_counter
+                color: (0.443, 0.443, 0.443, 1) if root.ids.p_c.disabled and root.ids.n_c.disabled else (1, 1, 1, 1)
             AnchorLayout:                                                  # left & right gallery buttons
                 size_hint: 1, 0.05
                 BoxLayout:
@@ -92,24 +139,52 @@ AnchorLayout:
                     Button:
                         size_hint: 0.5, 1
                         text: "<"
-                        id: previous_colorized
-                        on_press: app.previous_colorized()
+                        background_down: ''
+                        background_normal: ''
+                        background_disabled_normal: ''
+                        background_color: (0.2, 0.2, 0.2, 1)
+                        on_press: self.background_color = (0.35, 0.35, 0.35, 1)
+                        color: (0.443, 0.443, 0.443, 1) if self.disabled else (1, 1, 1, 1)
+                        on_release: self.background_color = ((0.2, 0.2, 0.2, 1) if self.disabled else (0.2902, 0.2902, 0.2902, 1))
+                        id: p_c
+                        on_release: app.p_c()
                     Button:
                         size_hint: 0.5, 1
                         text: ">"
-                        id: next_colorized
-                        on_press: app.next_colorized()
+                        background_down: ''
+                        background_normal: ''
+                        background_disabled_normal: ''
+                        background_color: (0.2, 0.2, 0.2, 1)
+                        on_press: self.background_color = (0.35, 0.35, 0.35, 1)
+                        color: (0.443, 0.443, 0.443, 1) if self.disabled else (1, 1, 1, 1)
+                        on_release: self.background_color = ((0.2, 0.2, 0.2, 1) if self.disabled else (0.2902, 0.2902, 0.2902, 1))
+                        id: n_c
+                        on_release: app.n_c()
             BoxLayout:                                                  # save & save all buttons
                 size_hint: 1, 0.1
                 Button:
                     id: save
                     size_hint: 0.5, 1
                     text: "save"
+                    background_down: ''
+                    background_normal: ''
+                    background_disabled_normal: ''
+                    background_color: (0.2, 0.2, 0.2, 1)
+                    on_press: self.background_color = (0.35, 0.35, 0.35, 1)
+                    color: (0.443, 0.443, 0.443, 1) if self.disabled else (1, 1, 1, 1)
+                    on_release: self.background_color = ((0.2, 0.2, 0.2, 1) if self.disabled else (0.2902, 0.2902, 0.2902, 1))
                     on_release: app.show_save()
                 Button:
                     id: save_all
                     size_hint: 0.5, 1
                     text: "save all"
+                    background_down: ''
+                    background_normal: ''
+                    background_disabled_normal: ''
+                    background_color: (0.2, 0.2, 0.2, 1)
+                    on_press: self.background_color = (0.35, 0.35, 0.35, 1)
+                    color: (0.443, 0.443, 0.443, 1) if self.disabled else (1, 1, 1, 1)
+                    on_release: self.background_color = ((0.2, 0.2, 0.2, 1) if self.disabled else (0.2902, 0.2902, 0.2902, 1))
                     on_release: app.show_save_all()
 
 <LoadDialog>:

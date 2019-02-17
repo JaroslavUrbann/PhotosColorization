@@ -9,17 +9,10 @@ from kivy.clock import mainthread
 from scripts.controller import Controller
 from kivy.lang import Builder
 import time
+import sys
 import os
 from glob import glob
 Window.size = (1024, 576)
-
-
-def resource_path(relative_path):
-    try:
-        base_path = sys._MEIPASS
-    except Exception:
-        base_path = os.path.abspath(".")
-    return os.path.join(base_path, relative_path)
 
 
 class ErrorDialog(FloatLayout):
@@ -56,19 +49,44 @@ class PhotosColorizationApp(App):
     error_popup = None
     prediction_thread = None
     timer_period = 70
+    old_id = ""
 
     def build(self):
         Window.bind(on_dropfile=self.on_drop_file)
-        load_models = Thread(target=self.Controller.load_models, args=(resource_path(""),))
+        Window.bind(mouse_pos=self.on_mouse_pos)
+        load_models = Thread(target=self.Controller.load_models, args=(self.resource_path(""),))
         load_models.daemon = True
         load_models.start()
-        self.root = Builder.load_file(resource_path('scripts/view.kv'))
-        self.root.ids.grayscale_img.source = resource_path("assets/b.jpg")
-        self.root.ids.colorized_img.source = resource_path("assets/d.jpg")
-        self.root.ids.pb.canvas.get_group("a")[0].source = resource_path('assets/gray.jpg')
-        self.root.ids.pb.canvas.get_group("b")[0].source = resource_path('assets/green.png')
-        self.root.ids.pb.canvas.get_group("c")[0].source = resource_path('assets/tr.png')
+        self.root = Builder.load_file(self.resource_path('scripts/view.kv'))
         self.update_buttons()
+
+    def resource_path(self, relative_path):
+        try:
+            base_path = sys._MEIPASS
+        except Exception:
+            base_path = os.path.abspath(".")
+        return os.path.join(base_path, relative_path)
+    
+    def on_mouse_pos(self, *args):
+        ids = self.root.ids
+        x, y = args[1]
+        id = \
+            "load" if ids.load.pos[0] < x < ids.load.pos[0] + ids.load.size[0] and ids.load.pos[1] < y < ids.load.pos[1] + ids.load.size[1] else \
+            "save" if ids.save.pos[0] < x < ids.save.pos[0] + ids.save.size[0] and ids.save.pos[1] < y < ids.save.pos[1] + ids.save.size[1] else \
+            "start" if ids.start.pos[0] < x < ids.start.pos[0] + ids.start.size[0] and ids.start.pos[1] < y < ids.start.pos[1] + ids.start.size[1] else \
+            "save_all" if ids.save_all.pos[0] < x < ids.save_all.pos[0] + ids.save_all.size[0] and ids.save_all.pos[1] < y < ids.save_all.pos[1] + ids.save_all.size[1] else \
+            "cancel" if ids.cancel.pos[0] < x < ids.cancel.pos[0] + ids.cancel.size[0] and ids.cancel.pos[1] < y < ids.cancel.pos[1] + ids.cancel.size[1] else \
+            "n_g" if ids.n_g.pos[0] < x < ids.n_g.pos[0] + ids.n_g.size[0] and ids.n_g.pos[1] < y < ids.n_g.pos[1] + ids.n_g.size[1] else \
+            "p_g" if ids.p_g.pos[0] < x < ids.p_g.pos[0] + ids.p_g.size[0] and ids.p_g.pos[1] < y < ids.p_g.pos[1] + ids.p_g.size[1] else \
+            "n_c" if ids.n_c.pos[0] < x < ids.n_c.pos[0] + ids.n_c.size[0] and ids.n_c.pos[1] < y < ids.n_c.pos[1] + ids.n_c.size[1] else \
+            "p_c" if ids.p_c.pos[0] < x < ids.p_c.pos[0] + ids.p_c.size[0] and ids.p_c.pos[1] < y < ids.p_c.pos[1] + ids.p_c.size[1] else ""
+        if self.old_id != id:
+            if self.old_id != "":
+                ids[self.old_id].background_color = (0.2, 0.2, 0.2, 1)
+                self.old_id = ""
+            if bool(id) and not ids[id].disabled:
+                ids[id].background_color = (0.2902, 0.2902, 0.2902, 1)
+                self.old_id = id
 
     def start_timer(self):
         start = 0
@@ -170,10 +188,10 @@ class PhotosColorizationApp(App):
         self.popup.open()
 
     def update_buttons(self):
-        self.root.ids.next_grayscale.disabled = len(self.grayscale_images) <= self.grayscale_index + 1
-        self.root.ids.previous_grayscale.disabled = self.grayscale_index < 1
-        self.root.ids.next_colorized.disabled = len(self.colorized_images) <= self.colorized_index + 1
-        self.root.ids.previous_colorized.disabled = self.colorized_index < 1
+        self.root.ids.n_g.disabled = len(self.grayscale_images) <= self.grayscale_index + 1
+        self.root.ids.p_g.disabled = self.grayscale_index < 1
+        self.root.ids.n_c.disabled = len(self.colorized_images) <= self.colorized_index + 1
+        self.root.ids.p_c.disabled = self.colorized_index < 1
         self.root.ids.start.disabled = not bool(self.grayscale_images) or (self.prediction_thread.is_alive() if self.prediction_thread else False)
         self.root.ids.load.disabled = self.prediction_thread.is_alive() if self.prediction_thread else False
         self.root.ids.save.disabled = len(self.colorized_images) == 0
@@ -213,25 +231,25 @@ class PhotosColorizationApp(App):
         self.Controller.cancel()
         self.update_buttons()
 
-    def next_grayscale(self):
+    def n_g(self):
         self.grayscale_index += 1
         self.update_buttons()
         self.grayscale_images[self.grayscale_index].seek(0)
         self.root.ids.grayscale_img.texture = CoreImage(self.grayscale_images[self.grayscale_index], ext='jpg').texture
 
-    def previous_grayscale(self):
+    def p_g(self):
         self.grayscale_index -= 1
         self.update_buttons()
         self.grayscale_images[self.grayscale_index].seek(0)
         self.root.ids.grayscale_img.texture = CoreImage(self.grayscale_images[self.grayscale_index], ext='jpg').texture
 
-    def next_colorized(self):
+    def n_c(self):
         self.colorized_index += 1
         self.update_buttons()
         self.colorized_images[self.colorized_index].seek(0)
         self.root.ids.colorized_img.texture = CoreImage(self.colorized_images[self.colorized_index], ext='jpg').texture
 
-    def previous_colorized(self):
+    def p_c(self):
         self.colorized_index -= 1
         self.update_buttons()
         self.colorized_images[self.colorized_index].seek(0)

@@ -102,6 +102,9 @@ class Model:
         tim = time.time()
         while not self.pspnet or not self.model:
             time.sleep(1)
+        if self.cancel:
+            return
+        self.colorized_images = []
         print("waiting takes: " + str(time.time() - tim))
         while len(self.grayscale_images) > len(self.colorized_images) and not self.cancel:
             print("starting index n: " + str(len(self.colorized_images)))
