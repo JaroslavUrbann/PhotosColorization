@@ -14,7 +14,8 @@ def plot_filters(layer, x, y):
     fig = plt.figure()
     for i in range(min(filters.shape[3], x*y)):
         ax = fig.add_subplot(y, x, i+1)
-        im = ax.imshow(filters[:, :, 0, i], cmap=matplotlib.cm.binary, vmin=filters.min(), vmax=filters.max())
+        ax.set_title(12)
+        im = ax.imshow(np.fliplr(filters[:, :, 0, i+28]), cmap=matplotlib.cm.binary, vmin=filters.min(), vmax=filters.max())
         plt.xticks(np.array([]))
         plt.yticks(np.array([]))
     fig.subplots_adjust(right=0.8)
@@ -40,7 +41,8 @@ def plot_activation_maps(model, layer, path, x, y):
     fig = plt.figure()
     for i in range(min(layer_output.shape[3], x * y)):
         ax = fig.add_subplot(y, x, i+1)
-        im = ax.imshow(layer_output[0, :, :, i], cmap=matplotlib.cm.binary, vmin=layer_output.min(), vmax=layer_output.max())
+        ax.set_title(i)
+        im = ax.imshow(layer_output[0, :, :, i+48], cmap=matplotlib.cm.binary, vmin=layer_output.min(), vmax=layer_output.max())
         plt.xticks(np.array([]))
         plt.yticks(np.array([]))
     fig.subplots_adjust(right=0.8)
@@ -49,6 +51,6 @@ def plot_activation_maps(model, layer, path, x, y):
     plt.show()
 
 
-# plot_filters(model.layers[1], 4, 4)
-plot_activation_maps(model, 28, "3.jpg", 4, 4)
+# plot_filters(model.layers[1], 1, 1)
+plot_activation_maps(model, 12, "w.jpg", 4, 4)
 # print(model.layers[16].get_config())

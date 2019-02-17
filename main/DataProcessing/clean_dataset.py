@@ -125,12 +125,14 @@ def create_image_bundle(folder_path, destination_path, bundle_size):
         print(str(r))
         print(len(i))
     random.shuffle(image_paths)
-    bundle = zipfile.ZipFile(destination_path, "w")
-    for i in range(min(bundle_size, len(image_paths))):
-        print(str(100 * i / min(bundle_size, len(image_paths))) + " %")
-        bundle.write(image_paths[i], str(i) + ".jpg")
-        os.remove(image_paths[i])
-    bundle.close()
+    for a in range(10):
+        xd = destination_path + "_" + str(a+20) + ".zip"
+        bundle = zipfile.ZipFile(xd, "w")
+        for i in range(a * min(bundle_size, len(image_paths)), (a+1) * min(bundle_size, len(image_paths))):
+            print(str(100 * i / min(bundle_size, len(image_paths))) + " %")
+            bundle.write(image_paths[i], str(i+10) + ".jpg")
+            os.remove(image_paths[i])
+        bundle.close()
 
 
 def resize_dataset(folder_path, size):
@@ -165,7 +167,8 @@ start_time = time.time()
 # restructure_dataset(path, move_to)
 # shuffle_dataset(move_to)
 # crop_dataset("C://frames", 256, 256)
-# remove_grayscale("D://groups")
-create_image_bundle("E://dataset2", "E://dataset2_training_4.zip", 46720)
+# remove_grayscale("D://groups")/
+create_image_bundle("E://dataset2", "E://dataset2_training", 46720)
 # resize_dataset("E://dataset2", 256)
 print(str(time.time() - start_time))
+#46720
