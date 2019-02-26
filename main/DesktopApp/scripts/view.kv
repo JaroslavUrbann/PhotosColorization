@@ -41,12 +41,6 @@ AnchorLayout:
                 id: grayscale_img
                 source: app.resource_path("assets/d.jpg")
                 size_hint: 1, 0.78
-                canvas.before:
-                    Color:
-                        rgba: .5, .5, .5, 1
-                    Line:
-                        width: 2
-                        rectangle: self.x, self.y, self.width, self.height
             Label:
                 font_size: 18
                 size_hint: 1, 0.05
@@ -83,6 +77,7 @@ AnchorLayout:
                 size_hint: 0, 0
                 id: pb
                 max: 1000
+                value: 110
             Widget:
                 size_hint: 1, 0.52
                 canvas:

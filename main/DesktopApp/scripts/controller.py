@@ -1,5 +1,6 @@
 from scripts.model import Model
 from io import BytesIO
+from PIL import ImageOps
 
 
 class Controller:
@@ -12,6 +13,14 @@ class Controller:
 
     def get_last_grayscale(self):
         image = self.model.get_last_grayscale()
+        w, h = image.size
+        while w > 639 or h > 639:
+            w -= 1
+            h -= image.size[1] / image.size[0]
+        while w < 640 or h < 640:
+            w += 1
+            h += image.size[1] / image.size[0]
+        image = ImageOps.expand(image.resize((int(w), int(h))), border=15)
         img_io = BytesIO()
         image.save(img_io, format="jpeg")
         img_io.seek(0)
@@ -19,6 +28,14 @@ class Controller:
 
     def get_last_colorized(self):
         image = self.model.get_last_colorized()
+        w, h = image.size
+        while w > 639 or h > 639:
+            w -= 1
+            h -= image.size[1] / image.size[0]
+        while w < 640 or h < 640:
+            w += 1
+            h += image.size[1] / image.size[0]
+        image = ImageOps.expand(image.resize((int(w), int(h))), border=15)
         img_io = BytesIO()
         image.save(img_io, format="jpeg")
         img_io.seek(0)
