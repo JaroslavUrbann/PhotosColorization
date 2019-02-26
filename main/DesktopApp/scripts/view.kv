@@ -188,6 +188,7 @@ AnchorLayout:
             size_hint_y: None
             height: 30
             Button:
+                text: "Cancel"
                 on_release: root.cancel()
 
             Button:
@@ -211,7 +212,7 @@ AnchorLayout:
                 on_release: root.cancel()
 
             Button:
-                text: "Save"
+                text: "Save All"
                 on_release: root.save(filechooser.path)
 
 <ErrorDialog>
