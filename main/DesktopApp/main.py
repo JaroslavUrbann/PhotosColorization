@@ -232,6 +232,7 @@ class PhotosColorizationApp(App):
     def cancel(self):
         self.Controller.cancel()
         self.update_buttons()
+        self.root.ids.cancel.disabled = True
 
     def n_g(self):
         self.grayscale_index += 1
@@ -258,4 +259,5 @@ class PhotosColorizationApp(App):
         self.root.ids.colorized_img.texture = CoreImage(self.colorized_images[self.colorized_index], ext='jpg').texture
 
 
-PhotosColorizationApp().run()
+if __name__ == '__main__':
+    PhotosColorizationApp().run()
