@@ -99,6 +99,7 @@ class Model:
         print("loading takes: " + str(time.time() - tim))
 
     def start_conversion(self):
+        self.cancel = False
         tim = time.time()
         while not self.pspnet or not self.model:
             time.sleep(1)
