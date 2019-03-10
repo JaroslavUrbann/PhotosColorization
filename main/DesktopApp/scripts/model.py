@@ -1,12 +1,13 @@
-from PIL import Image
+from PIL import Image, ImageFile
 import os
 import time
 from skimage.color import rgb2lab, lab2rgb
 import numpy as np
 from skimage.transform import resize
-from keras.models import load_model
 from keras import layers
 from keras import backend as K
+from keras.models import model_from_json
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 
 class Model:
@@ -90,10 +91,17 @@ class Model:
     def load_models(self, base_path):
         tim = time.time()
         K.set_session(K.tf.Session(config=K.tf.ConfigProto(intra_op_parallelism_threads=1, inter_op_parallelism_threads=1)))
-        pspnet = load_model(os.path.join(base_path, "models/pspnet.h5"), custom_objects={'Interp': Interp})
+        with open(os.path.join(base_path, "models/pspnet.json")) as pspnet_architecture:
+            json_string = pspnet_architecture.read()
+        pspnet = model_from_json(json_string, custom_objects={'Interp': Interp})
+        pspnet.load_weights(os.path.join(base_path, "models/pspnet.h5"))
         pspnet._make_predict_function()
         self.pspnet = pspnet
-        model = load_model(os.path.join(base_path, "models/FinalModel.hdf5"))
+
+        with open(os.path.join(base_path, "models/model.json")) as model_architecture:
+            json_string = model_architecture.read()
+        model = model_from_json(json_string)
+        model.load_weights(os.path.join(base_path, "models/model.h5"))
         model._make_predict_function()
         self.model = model
         print("loading takes: " + str(time.time() - tim))
@@ -111,17 +119,12 @@ class Model:
             print("starting index n: " + str(len(self.colorized_images)))
             tim = time.time()
             img = self.resize_img(self.grayscale_images[len(self.colorized_images)])
-            l = self.img2l(img)
             segmentation = self.predict_segmentation(img, (img.size[1] / 8, img.size[0] / 8))
             if self.cancel:
                 return
-            # with tf.Session(config=tf.ConfigProto(
-            #         device_count={"CPU": 1},
-            #         intra_op_parallelism_threads=1,
-            #         inter_op_parallelism_threads=1)) as sess:
-            #     sess.run(tf.global_variables_initializer())
-            #     K.set_session(sess)
+            l = self.img2l(img)
             y = self.model.predict([l, segmentation])
+            print(y)
             if self.cancel:
                 return
             a, b = np.split(y[0], [1], 2)  # možná líp?
@@ -133,7 +136,7 @@ class Model:
             color_img[:, :, 1] = a
             color_img[:, :, 2] = b
             color_img = Image.fromarray((lab2rgb(color_img)*255).astype('uint8'))
-            color_img = color_img.resize(self.grayscale_images[len(self.colorized_images)].size)
+            # color_img = color_img.resize(self.grayscale_images[len(self.colorized_images)].size)
             # changes images filename to the coresponding grayscale images filename and adds _colorized - for saving image later
             color_img.filename = os.path.splitext(os.path.basename(self.grayscale_images[len(self.colorized_images)].filename))[0] + "_colorized.jpg"
             self.colorized_images.append(color_img)
@@ -151,26 +154,17 @@ class Model:
 
     def predict_segmentation(self, img, output_shape):   # w x h
         input_size = 473
-        img.thumbnail((input_size, input_size))
-        new_img = Image.new('RGB', (input_size, input_size))
-        left = int((input_size - img.size[0]) / 2)
-        top = int((input_size - img.size[1]) / 2)
-        new_img.paste(img, (left, top))
-        new_img = np.array(new_img) - np.array([[[128, 128, 128]]])
-        # eb = time.time()
-        # with tf.Session(config=tf.ConfigProto(
-        #         device_count={"CPU": 1},
-        #         intra_op_parallelism_threads=1,
-        #         inter_op_parallelism_threads=1)) as sess:
-        #     sess.run(tf.global_variables_initializer())
-        #     K.set_session(sess)
-        #     print(time.time() - eb)
-        segmented_img = self.pspnet.predict(np.expand_dims(new_img, axis=0))[:, top:top+img.size[1], left:left+img.size[0], :]
-        segmented_img = resize(segmented_img,
-                               (1, output_shape[0], output_shape[1], 150),
-                               mode="constant",
-                               preserve_range=True)
-        return segmented_img
+        img = img.resize((input_size, input_size))
+        img = np.array(img) - np.array([[[128, 128, 128]]])
+        print(img.shape)
+        segmentation = self.pspnet.predict(np.expand_dims(img, axis=0))[0]
+        print(segmentation)
+        segmentation = resize(segmentation,
+                                (output_shape[0], output_shape[1], 150),
+                                mode="constant",
+                                preserve_range=True)
+        segmentation = np.expand_dims(segmentation, axis=0)
+        return segmentation
 
 
 class Interp(layers.Layer):

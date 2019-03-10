@@ -91,8 +91,8 @@ class PhotosColorizationApp(App):
                 self.old_id = id
 
     def start_timer(self):
-        start = 110
-        length = 760
+        start = 108
+        length = 762
         start_time = time.time()
         while True:
             if self.root.ids.pb.value < start + length:

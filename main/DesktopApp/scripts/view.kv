@@ -32,14 +32,14 @@ AnchorLayout:
         orientation: "horizontal"
         spacing: 10
         size_hint: 0.85, 0.90
-        size_hint_max: 1920, 1080   # use ifs instead of this in the end
-        size_hint_min: 494, 374       #
+        size_hint_max: 1920, 1080
+        size_hint_min: 494, 374
         BoxLayout:                                                  # left side
             size_hint: 0.44, 1
             orientation: "vertical"
             Image:                                            # grayscale image - can't anchor on bottom for some reason
                 id: grayscale_img
-                source: app.resource_path("assets/d.jpg")
+                source: app.resource_path("assets/dragndrop.png")
                 size_hint: 1, 0.78
             Label:
                 font_size: 18
@@ -77,7 +77,7 @@ AnchorLayout:
                 size_hint: 0, 0
                 id: pb
                 max: 1000
-                value: 110
+                value: 108
             Widget:
                 size_hint: 1, 0.52
                 canvas:
@@ -114,15 +114,15 @@ AnchorLayout:
             orientation: "vertical"
             Image:                                             # colored image - can't anchor on bottom for some reason
                 id: colorized_img
-                size_hint: 1, 0.80
-                source: app.resource_path("assets/d.jpg")
+                size_hint: 1, 0.78
+                source: app.resource_path("assets/your_images.png")
             Label:
                 font_size: 18
                 size_hint: 1, 0.05
                 id: colorized_counter
                 color: (0.443, 0.443, 0.443, 1) if root.ids.p_c.disabled and root.ids.n_c.disabled else (1, 1, 1, 1)
             AnchorLayout:                                                  # left & right gallery buttons
-                size_hint: 1, 0.05
+                size_hint: 1, 0.07
                 BoxLayout:
                     size_hint: 0.4, 1
                     ArrowButton:

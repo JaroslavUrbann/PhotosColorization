@@ -1,12 +1,16 @@
 from PIL import Image, ImageChops
 from os.path import basename
-import numpy as np
 import time
 import os
 import shutil
 import random
 import zipfile
-import sys
+from PIL import ImageFile
+ImageFile.LOAD_TRUNCATED_IMAGES = True
+
+####################################################################################
+# Library of preprocessing functions
+####################################################################################
 
 path = "C://ILSVRC2012_img_train"
 move_to = "F://faces_in_wild"
@@ -125,12 +129,12 @@ def create_image_bundle(folder_path, destination_path, bundle_size):
         print(str(r))
         print(len(i))
     random.shuffle(image_paths)
-    for a in range(10):
-        xd = destination_path + "_" + str(a+20) + ".zip"
+    for a in range(20):
+        xd = destination_path + "_" + str(a) + ".zip"
         bundle = zipfile.ZipFile(xd, "w")
         for i in range(a * min(bundle_size, len(image_paths)), (a+1) * min(bundle_size, len(image_paths))):
             print(str(100 * i / min(bundle_size, len(image_paths))) + " %")
-            bundle.write(image_paths[i], str(i+10) + ".jpg")
+            bundle.write(image_paths[i], str(i+20) + ".jpg")
             os.remove(image_paths[i])
         bundle.close()
 
@@ -144,8 +148,8 @@ def resize_dataset(folder_path, size):
             image_paths.append(os.path.join(r, image))
         print(str(r))
         print(len(i))
-    for i in range(len(image_paths)):
-        print("removed: " + str(n_removed) + " | " + str(100*i/len(image_paths)) + " %")
+    for i in range(230000, len(image_paths)):
+        print("removed: " + str(n_removed) + " | " + str(100*i/len(image_paths)) + " %", str(i))
         img = Image.open(image_paths[i])
         if is_grayscale(img):
             img.close()
@@ -163,12 +167,9 @@ def resize_dataset(folder_path, size):
 start_time = time.time()
 # remove_grayscale(path)
 # split_folder(path, move_to, 26)
-# remove_grayscale(move_to)
 # restructure_dataset(path, move_to)
 # shuffle_dataset(move_to)
 # crop_dataset("C://frames", 256, 256)
-# remove_grayscale("D://groups")/
-create_image_bundle("E://dataset2", "E://dataset2_training", 46720)
-# resize_dataset("E://dataset2", 256)
+create_image_bundle("E://dataset3", "E://dataset3_training", 46720)
+# resize_dataset("E://Dataset3", 256)
 print(str(time.time() - start_time))
-#46720
