@@ -54,6 +54,7 @@ class PhotosColorizationApp(App):
     old_id = ""
 
     def build(self):
+        self.icon = self.resource_path("assets/neuron.png")
         Window.bind(on_dropfile=self.on_drop_file)
         Window.bind(mouse_pos=self.on_mouse_pos)
         load_models = Thread(target=self.Controller.load_models, args=(self.resource_path(""),))

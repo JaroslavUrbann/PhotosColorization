@@ -6,7 +6,7 @@ block_cipher = None
 
 
 a = Analysis(['main.py'],
-             pathex=['C:\\Users\\Jaroslav Urban\\Desktop\\DesktopApp_'],
+             pathex=['C:\\Users\\Jaroslav Urban\\Desktop\\DesktopApp'],
              binaries=[],
              datas=[],
              hiddenimports=['pywt._extensions._cwt', 'win32file', 'win32timezone'],
@@ -31,4 +31,4 @@ exe = EXE(pyz, Tree(os.getcwd()),
           strip=False,
           upx=True,
           runtime_tmpdir=None,
-          console=True )
+          console=False, icon='C:\\Users\\Jaroslav Urban\\Desktop\\neuron.ico')
