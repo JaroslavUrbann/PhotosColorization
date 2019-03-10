@@ -32,12 +32,12 @@ class Model:
     def get_colorized_name(self, index):
         return self.colorized_images[index].filename
 
+    # save image
     def save(self, path, name, index):
         if name:
             try:
                 self.colorized_images[index].save(os.path.join(path, name), format="jpeg")
             except Exception as e:
-                print(e)
                 try:
                     self.colorized_images[index].save(os.path.join(path, self.colorized_images[index].filename), format="jpeg")
                 except:
@@ -49,16 +49,17 @@ class Model:
                 return False
         return True
 
+    # save all images
     def save_all(self, path):
         try:
             for i in range(len(self.colorized_images)):
-                print(os.path.join(path, self.colorized_images[i].filename))
                 self.colorized_images[i].save(os.path.join(path, self.colorized_images[i].filename), format="jpeg")
         except:
             return False
         return True
 
-    def set_image_paths(self, path: str):
+    # loads images to pillow format
+    def load_images(self, path: str):
         replaced = False
         try:
             img = Image.open(path)
@@ -67,16 +68,15 @@ class Model:
             # loses filename attribute for some reason
             img.filename = filename
         except:
-            print("couldn't open")
             return False, False
         if time.time() - self.last_image_set_time > 0.5:
             self.grayscale_images = []
             replaced = True
-        print(img.filename)
         self.grayscale_images.append(img)
         self.last_image_set_time = time.time()
         return True, replaced
 
+    # resizes and converts to grayscale
     def resize_img(self, img):
         w, h = img.size
         if w * h > 1920 * 1080:
@@ -88,6 +88,7 @@ class Model:
             h += 1
         return img.resize((int(w), int(h))).convert("L").convert("RGB")
 
+    # loads pspnet and main model
     def load_models(self, base_path):
         tim = time.time()
         K.set_session(K.tf.Session(config=K.tf.ConfigProto(intra_op_parallelism_threads=1, inter_op_parallelism_threads=1)))
@@ -104,8 +105,8 @@ class Model:
         model.load_weights(os.path.join(base_path, "models/model.h5"))
         model._make_predict_function()
         self.model = model
-        print("loading takes: " + str(time.time() - tim))
 
+    # main prediction function
     def start_conversion(self):
         self.cancel = False
         tim = time.time()
@@ -114,20 +115,17 @@ class Model:
         if self.cancel:
             return
         self.colorized_images = []
-        print("waiting takes: " + str(time.time() - tim))
         while len(self.grayscale_images) > len(self.colorized_images) and not self.cancel:
-            print("starting index n: " + str(len(self.colorized_images)))
             tim = time.time()
             img = self.resize_img(self.grayscale_images[len(self.colorized_images)])
-            segmentation = self.predict_segmentation(img, (img.size[1] / 8, img.size[0] / 8))
+            segmentation = self.predict_segmentation(img.copy(), (img.size[1] / 8, img.size[0] / 8))
             if self.cancel:
                 return
             l = self.img2l(img)
             y = self.model.predict([l, segmentation])
-            print(y)
             if self.cancel:
                 return
-            a, b = np.split(y[0], [1], 2)  # možná líp?
+            a, b = np.split(y[0], [1], 2)
             l = l[0, :, :, 0] * 100
             a = (a[:, :, 0] + 1) * 255 / 2 - 127
             b = (b[:, :, 0] + 1) * 255 / 2 - 128
@@ -136,14 +134,13 @@ class Model:
             color_img[:, :, 1] = a
             color_img[:, :, 2] = b
             color_img = Image.fromarray((lab2rgb(color_img)*255).astype('uint8'))
-            # color_img = color_img.resize(self.grayscale_images[len(self.colorized_images)].size)
+            color_img = color_img.resize(self.grayscale_images[len(self.colorized_images)].size)
             # changes images filename to the coresponding grayscale images filename and adds _colorized - for saving image later
             color_img.filename = os.path.splitext(os.path.basename(self.grayscale_images[len(self.colorized_images)].filename))[0] + "_colorized.jpg"
             self.colorized_images.append(color_img)
             self.is_colorized = True
-            print("prediction takes: " + str(time.time() - tim))
-        print("im out")
 
+    # converts image to lab
     def img2l(self, img):
         img = rgb2lab(img)
         l = img[:, :, 0]
@@ -152,21 +149,24 @@ class Model:
         l = np.expand_dims(l, axis=0)
         return l
 
+    # predicts segmentation with pspnet
     def predict_segmentation(self, img, output_shape):   # w x h
         input_size = 473
-        img = img.resize((input_size, input_size))
-        img = np.array(img) - np.array([[[128, 128, 128]]])
-        print(img.shape)
-        segmentation = self.pspnet.predict(np.expand_dims(img, axis=0))[0]
-        print(segmentation)
+        img.thumbnail((input_size, input_size))
+        new_img = Image.new('RGB', (input_size, input_size))
+        left = int((input_size - img.size[0]) / 2)
+        top = int((input_size - img.size[1]) / 2)
+        new_img.paste(img, (left, top))
+        new_img = np.array(new_img) - np.array([[[128, 128, 128]]])
+        segmentation = self.pspnet.predict(np.expand_dims(new_img, axis=0))[:, top:top+img.size[1], left:left+img.size[0], :]
         segmentation = resize(segmentation,
-                                (output_shape[0], output_shape[1], 150),
+                                (1, output_shape[0], output_shape[1], 150),
                                 mode="constant",
                                 preserve_range=True)
-        segmentation = np.expand_dims(segmentation, axis=0)
         return segmentation
 
 
+# custom pspnet layer
 class Interp(layers.Layer):
 
     def __init__(self, new_size, **kwargs):
@@ -189,16 +189,3 @@ class Interp(layers.Layer):
         config = super(Interp, self).get_config()
         config['new_size'] = self.new_size
         return config
-
-
-if __name__ == "__main__":
-    xd = Model()
-    print(xd.set_image_paths("C://Users//Jaroslav Urban//Desktop//y.jpg"))
-    # print(xd.set_image_paths("C://Users//Jaroslav Urban//Desktop//rsj.png"))
-    # tim = time.time()
-    xd.load_models("C://Users//Jaroslav Urban//Desktop//DesktopApp")
-    xd.start_conversion()
-    # K.clear_session()
-    time.sleep(3000)
-    # print(time.time() - tim)
-    # print(len(xd.colorized_images))

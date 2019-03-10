@@ -50,7 +50,7 @@ class PhotosColorizationApp(App):
     popup = None
     error_popup = None
     prediction_thread = None
-    timer_period = 70
+    timer_period = 60
     old_id = ""
 
     def build(self):
@@ -62,13 +62,15 @@ class PhotosColorizationApp(App):
         self.root = Builder.load_file(self.resource_path('scripts/view.kv'))
         self.update_buttons()
 
+    # relative path for freezing
     def resource_path(self, relative_path):
         try:
             base_path = sys._MEIPASS
         except Exception:
             base_path = os.path.abspath(".")
         return os.path.join(base_path, relative_path)
-    
+
+    # hover functionality
     def on_mouse_pos(self, *args):
         ids = self.root.ids
         x, y = args[1]
@@ -90,6 +92,7 @@ class PhotosColorizationApp(App):
                 ids[id].background_color = (0.2902, 0.2902, 0.2902, 1)
                 self.old_id = id
 
+    # progress bar timer
     def start_timer(self):
         start = 108
         length = 762
@@ -106,7 +109,6 @@ class PhotosColorizationApp(App):
                     self.update_colorized_gallery()
                     self.update_buttons()
                     self.timer_period = (time.time() - start_time) * 0.75 + self.timer_period * 0.25
-                    print(self.timer_period)
                 # finishes up the progressbar if it is still not finished and then resets it
                 while self.root.ids.pb.value < start + length:
                     self.root.ids.pb.value += 1
@@ -114,7 +116,6 @@ class PhotosColorizationApp(App):
                 self.root.ids.pb.value = start
 
                 if not self.prediction_thread.is_alive() or len(self.colorized_images) >= len(self.grayscale_images):
-                    print("breaks")
                     self.update_buttons()
                     return
                 start_time = time.time()
@@ -128,6 +129,7 @@ class PhotosColorizationApp(App):
     def on_drop_file(self, window, file_path):
         self.upload_images(str(file_path, 'UTF-8'))
 
+    # load button
     def load(self, file_paths, load_path):
         self.load_path = load_path
         # kivi sometimes counts in the folder you're in
@@ -140,6 +142,7 @@ class PhotosColorizationApp(App):
             self.upload_images(path)
             self.dismiss_popup()
 
+    # send images to model and load them in picture viewer
     def upload_images(self, path):
         if not (self.prediction_thread.is_alive() if self.prediction_thread else False):
             image_paths = []
@@ -151,7 +154,7 @@ class PhotosColorizationApp(App):
                 if extension == ".jpg" or extension == ".png":
                     image_paths.append(path)
             for p in image_paths:
-                is_loaded, is_replaced = self.Controller.set_image_paths(p)
+                is_loaded, is_replaced = self.Controller.load_images(p)
                 if is_loaded:
                     if is_replaced:
                         self.grayscale_images = []
@@ -189,6 +192,7 @@ class PhotosColorizationApp(App):
         self.popup = Popup(title="Save images", content=content, size_hint=(0.9, 0.9))
         self.popup.open()
 
+    # set buttons to disabled / enabled
     def update_buttons(self):
         self.root.ids.n_g.disabled = len(self.grayscale_images) <= self.grayscale_index + 1
         self.root.ids.p_g.disabled = self.grayscale_index < 1
@@ -203,6 +207,7 @@ class PhotosColorizationApp(App):
         self.root.ids.done_counter.text = str(len(self.colorized_images)) + " / " + str(len(self.grayscale_images))
         self.root.ids.cancel.disabled = not (self.prediction_thread.is_alive() if self.prediction_thread else False)
 
+    # start prediction thread and timer thread
     def start(self):
         self.colorized_images = []
         self.colorized_index = 0
@@ -213,27 +218,29 @@ class PhotosColorizationApp(App):
         timer.daemon = True
         timer.start()
         self.update_buttons()
-        print("I started them")
 
+    # save image
     def save(self, path, name):
-        print(path)
         self.save_path = path
         if self.Controller.save(path, name, self.colorized_index):
             self.dismiss_popup()
         else:
             self.show_error()
 
+    # save all images
     def save_all(self, path):
         if self.Controller.save_all(path):
             self.dismiss_popup()
         else:
             self.show_error()
 
+    # cancel predicting
     def cancel(self):
         self.Controller.cancel()
         self.update_buttons()
         self.root.ids.cancel.disabled = True
 
+    # functions for moving images left / right
     def n_g(self):
         self.grayscale_index += 1
         self.update_buttons()

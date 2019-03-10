@@ -7,8 +7,8 @@ class Controller:
     def __init__(self):
         self.model = Model()
 
-    def set_image_paths(self, path: str):
-        is_loaded, is_replaced = self.model.set_image_paths(path)
+    def load_images(self, path: str):
+        is_loaded, is_replaced = self.model.load_images(path)
         return is_loaded, is_replaced
 
     def get_last_grayscale(self):
@@ -16,7 +16,6 @@ class Controller:
         w, h = image.size
         b = round(w/64) if w > h else round(h/64)
         image = ImageOps.expand(image, border=int(b))
-        print(image.size)
         img_io = BytesIO()
         image.save(img_io, format="jpeg")
         img_io.seek(0)
@@ -27,7 +26,6 @@ class Controller:
         w, h = image.size
         b = round(w/64) if w > h else round(h/64)
         image = ImageOps.expand(image, border=int(b))
-        print(image.size)
         img_io = BytesIO()
         image.save(img_io, format="jpeg")
         img_io.seek(0)
